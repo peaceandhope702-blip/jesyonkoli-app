@@ -21,7 +21,6 @@ import com.ricardo.jesyonkoli.data.adapter.MoradorEncomendaAdapter;
 import com.ricardo.jesyonkoli.data.model.Encomenda;
 import com.ricardo.jesyonkoli.ui.auth.LoginActivity;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,12 +28,12 @@ public class MoradorHomeActivity extends AppCompatActivity {
 
     private RecyclerView recycler;
     private ProgressBar progress;
-    private TextView tvEmpty;
+    private TextView tvEmpty, tvLogout, tvSaudacao, tvResumo;
+    private TextView tvPendentesCount, tvHistoricoCount;
     private Button btnPendentes, btnHistorico;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private Button btnLogout;
 
     private final List<Encomenda> listaPendentes = new ArrayList<>();
     private final List<Encomenda> listaHistorico = new ArrayList<>();
@@ -50,6 +49,12 @@ public class MoradorHomeActivity extends AppCompatActivity {
         recycler = findViewById(R.id.recyclerEncomendas);
         progress = findViewById(R.id.progress);
         tvEmpty = findViewById(R.id.tvEmpty);
+        tvLogout = findViewById(R.id.tvLogout);
+        tvSaudacao = findViewById(R.id.tvSaudacao);
+        tvResumo = findViewById(R.id.tvResumo);
+        tvPendentesCount = findViewById(R.id.tvPendentesCount);
+        tvHistoricoCount = findViewById(R.id.tvHistoricoCount);
+
         btnPendentes = findViewById(R.id.btnPendentes);
         btnHistorico = findViewById(R.id.btnHistorico);
 
@@ -65,26 +70,7 @@ public class MoradorHomeActivity extends AppCompatActivity {
             Intent intent = new Intent(this, MoradorDetalheEncomendaActivity.class);
             intent.putExtra("encomendaId", encomenda.getId());
             startActivity(intent);
-
-
-
         });
-        btnLogout = findViewById(R.id.btnLogout);
-
-        btnLogout.setOnClickListener(v -> {
-
-            FirebaseAuth.getInstance().signOut();
-
-            Intent intent = new Intent(MoradorHomeActivity.this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
-            startActivity(intent);
-            finish();
-        });
-
-
-
-
 
         recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(adapter);
@@ -92,7 +78,35 @@ public class MoradorHomeActivity extends AppCompatActivity {
         btnPendentes.setOnClickListener(v -> mostrarPendentes());
         btnHistorico.setOnClickListener(v -> mostrarHistorico());
 
+        tvLogout.setOnClickListener(v -> {
+            FirebaseAuth.getInstance().signOut();
+
+            Intent intent = new Intent(MoradorHomeActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        });
+
+        configurarSaudacao();
         carregarEncomendas();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        carregarEncomendas();
+    }
+
+    private void configurarSaudacao() {
+        FirebaseUser user = auth.getCurrentUser();
+
+        if (user != null && user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+            String email = user.getEmail();
+            String nome = email.split("@")[0];
+            tvSaudacao.setText("Olá, " + nome);
+        } else {
+            tvSaudacao.setText("Olá!");
+        }
     }
 
     private void carregarEncomendas() {
@@ -128,20 +142,39 @@ public class MoradorHomeActivity extends AppCompatActivity {
                     }
 
                     progress.setVisibility(View.GONE);
+                    atualizarResumo();
                     mostrarPendentes();
                 })
                 .addOnFailureListener(e -> {
                     progress.setVisibility(View.GONE);
-                    Toast.makeText(MoradorHomeActivity.this,
+                    Toast.makeText(
+                            MoradorHomeActivity.this,
                             "Erro ao carregar encomendas: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
+                            Toast.LENGTH_LONG
+                    ).show();
                 });
+    }
+
+    private void atualizarResumo() {
+        tvPendentesCount.setText(String.valueOf(listaPendentes.size()));
+        tvHistoricoCount.setText(String.valueOf(listaHistorico.size()));
+
+        if (!listaPendentes.isEmpty()) {
+            tvResumo.setText("Você tem " + listaPendentes.size() + " encomenda(s) pendente(s).");
+        } else if (!listaHistorico.isEmpty()) {
+            tvResumo.setText("Você já retirou " + listaHistorico.size() + " encomenda(s).");
+        } else {
+            tvResumo.setText("Nenhuma encomenda encontrada no momento.");
+        }
     }
 
     private void mostrarPendentes() {
         listaExibida.clear();
         listaExibida.addAll(listaPendentes);
         adapter.notifyDataSetChanged();
+
+        btnPendentes.setAlpha(1f);
+        btnHistorico.setAlpha(0.7f);
 
         if (listaExibida.isEmpty()) {
             tvEmpty.setText("Nenhuma encomenda pendente.");
@@ -155,6 +188,9 @@ public class MoradorHomeActivity extends AppCompatActivity {
         listaExibida.clear();
         listaExibida.addAll(listaHistorico);
         adapter.notifyDataSetChanged();
+
+        btnHistorico.setAlpha(1f);
+        btnPendentes.setAlpha(0.7f);
 
         if (listaExibida.isEmpty()) {
             tvEmpty.setText("Nenhuma encomenda no histórico.");

@@ -168,7 +168,7 @@
                 android:id="@+id/tvMensagemTitulo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Mensagem do dia"
+                android:text=" "
                 android:textColor="#222222"
                 android:textSize="16sp"
                 android:textStyle="bold"

@@ -170,6 +170,8 @@ public class UsuariosActivity extends AppCompatActivity {
                         usuario.setStatus(doc.getString("status"));
                         usuario.setPerfil(doc.getString("role"));
 
+
+
                         listaUsuarios.add(usuario);
                     }
 
