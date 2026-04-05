@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "315332873101",
+    "project_id": "jesyonkoli",
+    "storage_bucket": "jesyonkoli.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315332873101:android:50e9818039a10e454ccbc4",
+        "android_client_info": {
+          "package_name": "com.ricardo.jesyonkoli"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJ_dNEEbcS2dx08FXbv84BFRdf1MWMhFs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

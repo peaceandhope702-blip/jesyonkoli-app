@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F5F7FA">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Criar conta"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#1F1F1F"
+        android:layout_marginBottom="20dp" />
+
+    <EditText
+        android:id="@+id/etNome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nome completo"
+        android:inputType="textPersonName"
+        android:layout_marginBottom="12dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
+
+    <EditText
+        android:id="@+id/etEmail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="E-mail"
+        android:inputType="textEmailAddress"
+        android:layout_marginBottom="12dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
+
+    <EditText
+        android:id="@+id/etInvitationCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Código de convite"
+        android:inputType="text"
+        android:layout_marginBottom="12dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
+
+    <EditText
+        android:id="@+id/etPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Senha"
+        android:inputType="textPassword"
+        android:layout_marginBottom="18dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/btnGoRegister"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Criar conta"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#1976D2"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="10dp" />
+
+    <Button
+        android:id="@+id/btnLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Voltar para login"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#E0E0E0"
+        android:textColor="#1F1F1F" />
+
+</LinearLayout>
