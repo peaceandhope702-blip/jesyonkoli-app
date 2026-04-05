@@ -13,8 +13,8 @@
         android:layout_height="78dp"
         android:background="#0D47A1"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
         android:paddingTop="20dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="14dp">
 
         <TextView
@@ -47,17 +47,185 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-
-
+        <!-- TITRE -->
         <TextView
-            android:id="@+id/tvEmpty"
+            android:id="@+id/tvBoasVindas"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:gravity="center"
-            android:text="Um bom porteiro não apenas vigia portas… ele protege vidas."
-            android:textColor="#7A7A7A"
-            android:textSize="18sp" />
+            android:text="Resumo da Portaria"
+            android:textColor="#222222"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="14dp" />
+
+        <!-- STATISTIQUES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="90dp"
+                android:layout_weight="1"
+                android:layout_margin="4dp"
+                android:background="#E3F2FD"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pendentes"
+                    android:textColor="#1E4FA3"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPendentesCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="0"
+                    android:textColor="#1E4FA3"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="90dp"
+                android:layout_weight="1"
+                android:layout_margin="4dp"
+                android:background="#E8F5E9"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nova hoje"
+                    android:textColor="#2E7D32"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvNovasCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="0"
+                    android:textColor="#2E7D32"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="90dp"
+                android:layout_weight="1"
+                android:layout_margin="4dp"
+                android:background="#FFF3E0"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Retiradas"
+                    android:textColor="#EF6C00"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvRetiradasCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="0"
+                    android:textColor="#EF6C00"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- CARTE MESSAGE -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            android:orientation="vertical"
+            android:padding="18dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/tvMensagemTitulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Mensagem do dia"
+                android:textColor="#222222"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:id="@+id/tvEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Um bom porteiro não apenas vigia portas… ele protege vidas."
+                android:textColor="#7A7A7A"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- ACTION RAPIDE -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvAcoesRapidas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ações rápidas"
+                android:textColor="#222222"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btnNovaEncomendaRapida"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nova Encomenda"
+                android:textAllCaps="false"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnVerPendentesRapido"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver Pendentes"
+                android:textAllCaps="false"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnVerHistoricoRapido"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver Histórico"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -66,11 +234,11 @@
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
         android:layout_height="78dp"
-        android:orientation="horizontal"
-        android:weightSum="3"
         android:background="#FFFFFF"
         android:elevation="10dp"
-        android:paddingBottom="6dp">
+        android:orientation="horizontal"
+        android:paddingBottom="6dp"
+        android:weightSum="3">
 
         <TextView
             android:id="@+id/navPendentes"
@@ -108,4 +276,3 @@
     </LinearLayout>
 
 </LinearLayout>
-

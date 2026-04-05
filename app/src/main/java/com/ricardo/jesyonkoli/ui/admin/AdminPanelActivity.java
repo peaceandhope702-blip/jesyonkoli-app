@@ -4,13 +4,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.ui.auth.LoginActivity;
 
@@ -76,14 +75,42 @@ public class AdminPanelActivity extends AppCompatActivity {
             Intent intent = new Intent(AdminPanelActivity.this, UnitsActivity.class);
             startActivity(intent);
         });
-        btnVerEncomendas.setOnClickListener(v -> {
-                    Intent intent = new Intent(AdminPanelActivity.this, com.ricardo.jesyonkoli.ui.portaria.PendentesActivity.class);
-                    startActivity(intent);
-                });
 
-        btnConfiguracoes.setOnClickListener(v ->
-                Toast.makeText(this, "Configurações em breve", Toast.LENGTH_SHORT).show()
-        );
+        btnVerEncomendas.setOnClickListener(v -> {
+            Intent intent = new Intent(AdminPanelActivity.this,
+                    com.ricardo.jesyonkoli.ui.portaria.PendentesActivity.class);
+            startActivity(intent);
+        });
+
+        btnConfiguracoes.setOnClickListener(v -> {
+            String[] opcoes = {
+                    "Gerenciar Usuários",
+                    "Gerenciar Unidades",
+                    "Sair da conta"
+            };
+
+            new AlertDialog.Builder(AdminPanelActivity.this)
+                    .setTitle("Configurações")
+                    .setItems(opcoes, (dialog, which) -> {
+                        if (which == 0) {
+                            Intent intent = new Intent(AdminPanelActivity.this, UsuariosActivity.class);
+                            startActivity(intent);
+
+                        } else if (which == 1) {
+                            Intent intent = new Intent(AdminPanelActivity.this, UnitsActivity.class);
+                            startActivity(intent);
+
+                        } else if (which == 2) {
+                            FirebaseAuth.getInstance().signOut();
+
+                            Intent intent = new Intent(AdminPanelActivity.this, LoginActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                        }
+                    })
+                    .show();
+        });
 
         btnSair.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();

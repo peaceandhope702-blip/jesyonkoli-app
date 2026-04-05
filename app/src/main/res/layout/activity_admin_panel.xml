@@ -258,6 +258,18 @@
                     android:textColor="#2F3B52"
                     android:textStyle="bold"
                     android:backgroundTint="#FFFFFF" />
+
+                <Button
+                    android:id="@+id/btnConfiguracoes"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="#FFFFFF"
+                    android:text="⚙️ Configurações"
+                    android:textAllCaps="false"
+                    android:textColor="#2F3B52"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
@@ -278,17 +290,6 @@
                     android:textStyle="bold"
                     android:backgroundTint="#FFFFFF" />
 
-                <Button
-                    android:id="@+id/btnConfiguracoes"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:text="⚙️ Configurações"
-                    android:textAllCaps="false"
-                    android:textColor="#2F3B52"
-                    android:textStyle="bold"
-                    android:backgroundTint="#FFFFFF" />
             </LinearLayout>
 
             <!-- ÚLTIMAS ENCOMENDAS -->
