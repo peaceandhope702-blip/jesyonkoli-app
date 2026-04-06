@@ -37,6 +37,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     private TextView tvDestinatario;
     private Button btnBuscarMorador, btnFoto, btnSalvar;
     private ImageView imgPreview;
+    private String condominioId;
 
     private FirebaseFirestore db;
 
@@ -103,6 +104,13 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         btnBuscarMorador.setOnClickListener(v -> buscarMoradorPorUnidade());
         btnFoto.setOnClickListener(v -> verificarPermissaoEAbrirCamera());
         btnSalvar.setOnClickListener(v -> salvarEncomenda());
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
     }
 
     private void verificarPermissaoEAbrirCamera() {
@@ -177,6 +185,8 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         String unidade = etUnidade.getText().toString().trim();
         String descricao = etDescricao.getText().toString().trim();
 
+
+
         if (unidade.isEmpty()) {
             Toast.makeText(this, "Digite a unidade", Toast.LENGTH_SHORT).show();
             return;
@@ -212,6 +222,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         encomenda.put("status", "PENDENTE");
         encomenda.put("createdAt", FieldValue.serverTimestamp());
         encomenda.put("createdBy", portariaUid);
+        encomenda.put("condominioId", condominioId);
 
         registrarEncomendaLocal(encomenda);
     }

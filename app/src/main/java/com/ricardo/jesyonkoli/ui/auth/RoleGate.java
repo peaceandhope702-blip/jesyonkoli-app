@@ -40,9 +40,9 @@ public class RoleGate {
 
                     String role = document.getString("role");
                     String status = document.getString("status");
+                    String condominioId = document.getString("condominioId");
 
                     if (status == null || !status.equalsIgnoreCase("ATIVO")) {
-
                         new AlertDialog.Builder(activity)
                                 .setTitle("Conta inativa")
                                 .setMessage("Sua conta está inativa. Entre em contato com a administração do condomínio.")
@@ -56,22 +56,35 @@ public class RoleGate {
                                     activity.finish();
                                 })
                                 .show();
+                        return;
+                    }
 
+                    if (condominioId == null || condominioId.trim().isEmpty()) {
+                        Toast.makeText(activity, "Condomínio do usuário não definido", Toast.LENGTH_SHORT).show();
+                        FirebaseAuth.getInstance().signOut();
+
+                        Intent intent = new Intent(activity, LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        activity.startActivity(intent);
+                        activity.finish();
                         return;
                     }
 
                     if ("PORTARIA".equals(role)) {
                         Intent intent = new Intent(activity, PortariaDashboardActivity.class);
+                        intent.putExtra("condominioId", condominioId);
                         activity.startActivity(intent);
                         activity.finish();
 
                     } else if ("MORADOR".equals(role)) {
                         Intent intent = new Intent(activity, MoradorHomeActivity.class);
+                        intent.putExtra("condominioId", condominioId);
                         activity.startActivity(intent);
                         activity.finish();
 
                     } else if ("ADMIN".equals(role)) {
                         Intent intent = new Intent(activity, AdminPanelActivity.class);
+                        intent.putExtra("condominioId", condominioId);
                         activity.startActivity(intent);
                         activity.finish();
 

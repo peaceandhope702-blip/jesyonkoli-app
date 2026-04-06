@@ -23,6 +23,7 @@ public class HistoricoActivity extends AppCompatActivity {
 
     private RecyclerView recyclerHistorico;
     private TextView tvEmptyHistorico;
+    private String condominioId;
 
     private FirebaseFirestore db;
     private final List<Encomenda> listaHistorico = new ArrayList<>();
@@ -32,6 +33,14 @@ public class HistoricoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_historico);
+
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
         recyclerHistorico = findViewById(R.id.recyclerHistorico);
         tvEmptyHistorico = findViewById(R.id.tvEmptyHistorico);
@@ -48,6 +57,10 @@ public class HistoricoActivity extends AppCompatActivity {
 
             Intent intent = new Intent(HistoricoActivity.this, DetalheEncomendaActivity.class);
             intent.putExtra("encomendaId", encomenda.getId());
+
+            // NOUVO (pase condominioId)
+            intent.putExtra("condominioId", condominioId);
+
             startActivity(intent);
         });
 
@@ -64,6 +77,7 @@ public class HistoricoActivity extends AppCompatActivity {
     private void carregarHistorico() {
         db.collection("encomendas")
                 .whereEqualTo("status", "RETIRADA")
+                .whereEqualTo("condominioId", condominioId) // 🔥 SA KI TE MANKE A
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     listaHistorico.clear();

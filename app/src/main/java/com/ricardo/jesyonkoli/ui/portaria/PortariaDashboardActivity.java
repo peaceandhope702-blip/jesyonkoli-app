@@ -32,12 +32,24 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private int totalNovasHoje = 0;
     private int totalRetiradas = 0;
 
+    // NOUVO
+    private String condominioId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_portaria_dashboard);
 
         db = FirebaseFirestore.getInstance();
+
+        // NOUVO
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
         navPendentes = findViewById(R.id.navPendentes);
         navNova = findViewById(R.id.navNova);
@@ -49,7 +61,6 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         tvRetiradasCount = findViewById(R.id.tvRetiradasCount);
         tvEmpty = findViewById(R.id.tvEmpty);
 
-        // Ajoute espace en haut/bas selon téléphone
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(0, systemBars.top, 0, systemBars.bottom);
@@ -68,25 +79,29 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     }
 
     private void configurarNavegacao() {
+
         navPendentes.setOnClickListener(v -> {
-            Intent intent = new Intent(PortariaDashboardActivity.this, PendentesActivity.class);
+            Intent intent = new Intent(this, PendentesActivity.class);
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
 
         navNova.setOnClickListener(v -> {
-            Intent intent = new Intent(PortariaDashboardActivity.this, NovaEncomendaActivity.class);
+            Intent intent = new Intent(this, NovaEncomendaActivity.class);
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
 
         navHistorico.setOnClickListener(v -> {
-            Intent intent = new Intent(PortariaDashboardActivity.this, HistoricoActivity.class);
+            Intent intent = new Intent(this, HistoricoActivity.class);
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
     }
 
     private void configurarMenu() {
         tvMenu.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(PortariaDashboardActivity.this, tvMenu);
+            PopupMenu popupMenu = new PopupMenu(this, tvMenu);
             popupMenu.getMenu().add("Profil");
             popupMenu.getMenu().add("Déconnexion");
 
@@ -94,17 +109,13 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                 String title = item.getTitle().toString();
 
                 if (title.equals("Profil")) {
-                    Toast.makeText(
-                            PortariaDashboardActivity.this,
-                            "Profil ap vini pita",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(this, "Profil ap vini pita", Toast.LENGTH_SHORT).show();
                     return true;
                 }
 
                 if (title.equals("Déconnexion")) {
                     FirebaseAuth.getInstance().signOut();
-                    Intent intent = new Intent(PortariaDashboardActivity.this, LoginActivity.class);
+                    Intent intent = new Intent(this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
                     finish();
@@ -127,9 +138,10 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private void carregarPendentes() {
         db.collection("encomendas")
                 .whereEqualTo("status", "PENDENTE")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    totalPendentes = queryDocumentSnapshots.size();
+                .addOnSuccessListener(q -> {
+                    totalPendentes = q.size();
                     tvPendentesCount.setText(String.valueOf(totalPendentes));
                     atualizarMensagem();
                 })
@@ -143,9 +155,10 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private void carregarRetiradas() {
         db.collection("encomendas")
                 .whereEqualTo("status", "RETIRADA")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    totalRetiradas = queryDocumentSnapshots.size();
+                .addOnSuccessListener(q -> {
+                    totalRetiradas = q.size();
                     tvRetiradasCount.setText(String.valueOf(totalRetiradas));
                     atualizarMensagem();
                 })
@@ -158,8 +171,9 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
     private void carregarNovasHoje() {
         db.collection("encomendas")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
+                .addOnSuccessListener(query -> {
                     int countHoje = 0;
 
                     Calendar hojeInicio = Calendar.getInstance();
@@ -170,10 +184,8 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
                     Date inicioDoDia = hojeInicio.getTime();
 
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                    for (QueryDocumentSnapshot doc : query) {
                         Timestamp timestamp = doc.getTimestamp("createdAt");
-                        // Si lakay ou se "createdAt", chanje liy anwo a pou:
-                        // Timestamp timestamp = doc.getTimestamp("createdAt");
 
                         if (timestamp != null && timestamp.toDate().compareTo(inicioDoDia) >= 0) {
                             countHoje++;

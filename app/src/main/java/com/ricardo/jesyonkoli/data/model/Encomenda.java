@@ -11,6 +11,9 @@ public class Encomenda {
     private String status;
     private Timestamp createdAt;
 
+    // NOUVO
+    private String condominioId;
+
     public Encomenda() {
     }
 
@@ -38,6 +41,10 @@ public class Encomenda {
         return createdAt;
     }
 
+    public String getCondominioId() {
+        return condominioId;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -60,5 +67,9 @@ public class Encomenda {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public void setCondominioId(String condominioId) {
+        this.condominioId = condominioId;
     }
 }

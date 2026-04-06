@@ -81,6 +81,7 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
                                     UnitModel atualizado = new UnitModel(
                                             unit.getUnitId(),
                                             unit.getUnidade(),
+                                            unit.getCondominioId(),
                                             novoStatus
                                     );
 

@@ -10,10 +10,13 @@ public class UsuarioModel {
     private String perfil;
     private String status;
 
+    // NOUVO
+    private String condominioId;
+
     public UsuarioModel() {
     }
 
-    public UsuarioModel(String id, String nome, String email, String unidade, String unitId, String perfil, String status) {
+    public UsuarioModel(String id, String nome, String email, String unidade, String unitId, String perfil, String status, String condominioId) {
         this.id = id;
         this.nome = nome;
         this.email = email;
@@ -21,6 +24,7 @@ public class UsuarioModel {
         this.unitId = unitId;
         this.perfil = perfil;
         this.status = status;
+        this.condominioId = condominioId;
     }
 
     public String getId() {
@@ -51,6 +55,10 @@ public class UsuarioModel {
         return status;
     }
 
+    public String getCondominioId() {
+        return condominioId;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -77,5 +85,9 @@ public class UsuarioModel {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setCondominioId(String condominioId) {
+        this.condominioId = condominioId;
     }
 }

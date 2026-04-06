@@ -14,13 +14,13 @@ import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.data.adapter.EncomendaAdapter;
 import com.ricardo.jesyonkoli.data.model.Encomenda;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class PendentesActivity extends AppCompatActivity {
 
     private RecyclerView recyclerPendentes;
+    private String condominioId;
 
     private FirebaseFirestore db;
     private final List<Encomenda> listaEncomendas = new ArrayList<>();
@@ -34,6 +34,14 @@ public class PendentesActivity extends AppCompatActivity {
         recyclerPendentes = findViewById(R.id.recyclerPendentes);
         db = FirebaseFirestore.getInstance();
 
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
         adapter = new EncomendaAdapter(listaEncomendas, encomenda -> {
             if (encomenda == null || encomenda.getId() == null || encomenda.getId().trim().isEmpty()) {
                 Toast.makeText(PendentesActivity.this,
@@ -44,6 +52,10 @@ public class PendentesActivity extends AppCompatActivity {
 
             Intent intent = new Intent(PendentesActivity.this, DetalheEncomendaActivity.class);
             intent.putExtra("encomendaId", encomenda.getId());
+
+            // NOUVO (pase condominioId)
+            intent.putExtra("condominioId", condominioId);
+
             startActivity(intent);
         });
 
@@ -60,6 +72,7 @@ public class PendentesActivity extends AppCompatActivity {
     private void carregarPendentes() {
         db.collection("encomendas")
                 .whereEqualTo("status", "PENDENTE")
+                .whereEqualTo("condominioId", condominioId) // 🔥 SA KI TE MANKE A
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     listaEncomendas.clear();

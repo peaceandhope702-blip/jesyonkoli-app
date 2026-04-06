@@ -120,19 +120,26 @@ public class RegisterActivity extends AppCompatActivity {
                     }
 
                     String unitId = doc.getString("unitId");
+                    String condominioId = doc.getString("condominioId");
+
                     if (unitId == null || unitId.trim().isEmpty()) {
                         showToast("Unidade não definida no código de convite.");
                         return;
                     }
 
-                    verifyUnitAndContinue(nome, email, pass, unitId.trim(), doc.getReference());
+                    if (condominioId == null || condominioId.trim().isEmpty()) {
+                        showToast("Condomínio não definido no código de convite.");
+                        return;
+                    }
+
+                    verifyUnitAndContinue(nome, email, pass, unitId.trim(), condominioId.trim(), doc.getReference());
                 })
                 .addOnFailureListener(e ->
                         showToast("Erro ao verificar o código: " + e.getMessage())
                 );
     }
 
-    private void verifyUnitAndContinue(String nome, String email, String pass, String unitId, DocumentReference codeRef) {
+    private void verifyUnitAndContinue(String nome, String email, String pass, String unitId, String condominioId, DocumentReference codeRef) {
         db.collection("units")
                 .document(unitId)
                 .get()
@@ -143,19 +150,26 @@ public class RegisterActivity extends AppCompatActivity {
                     }
 
                     String unitStatus = unitDoc.getString("status");
+                    String unitCondominioId = unitDoc.getString("condominioId");
+
                     if (unitStatus != null && unitStatus.equalsIgnoreCase("INATIVA")) {
                         showToast("Esta unidade está inativa.");
                         return;
                     }
 
-                    createUserAndProfile(nome, email, pass, unitId, codeRef);
+                    if (unitCondominioId == null || !unitCondominioId.equals(condominioId)) {
+                        showToast("Esta unidade não pertence ao condomínio do convite.");
+                        return;
+                    }
+
+                    createUserAndProfile(nome, email, pass, unitId, condominioId, codeRef);
                 })
                 .addOnFailureListener(e ->
                         showToast("Erro ao verificar a unidade: " + e.getMessage())
                 );
     }
 
-    private void createUserAndProfile(String nome, String email, String pass, String unitId, DocumentReference codeRef) {
+    private void createUserAndProfile(String nome, String email, String pass, String unitId, String condominioId, DocumentReference codeRef) {
         auth.createUserWithEmailAndPassword(email, pass)
                 .addOnSuccessListener(result -> {
                     FirebaseUser firebaseUser = result.getUser();
@@ -167,7 +181,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                     String uid = firebaseUser.getUid();
 
-                    desactivateOldMorador(unitId, () -> {
+                    desactivateOldMorador(unitId, condominioId, () -> {
                         Map<String, Object> user = new HashMap<>();
                         user.put("nome", nome);
                         user.put("email", email);
@@ -175,6 +189,7 @@ public class RegisterActivity extends AppCompatActivity {
                         user.put("status", "ATIVO");
                         user.put("unitId", unitId);
                         user.put("unidade", unitId);
+                        user.put("condominioId", condominioId);
                         user.put("createdAt", FieldValue.serverTimestamp());
 
                         db.collection("users")
@@ -193,9 +208,10 @@ public class RegisterActivity extends AppCompatActivity {
                 );
     }
 
-    private void desactivateOldMorador(String unitId, Runnable onComplete) {
+    private void desactivateOldMorador(String unitId, String condominioId, Runnable onComplete) {
         db.collection("users")
                 .whereEqualTo("unitId", unitId)
+                .whereEqualTo("condominioId", condominioId)
                 .whereEqualTo("role", "MORADOR")
                 .whereEqualTo("status", "ATIVO")
                 .get()

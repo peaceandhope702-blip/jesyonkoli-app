@@ -1,7 +1,5 @@
 package com.ricardo.jesyonkoli.ui.admin;
 
-
-
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.widget.EditText;
@@ -25,13 +23,14 @@ import java.util.List;
 import java.util.Map;
 
 public class UnitsActivity extends AppCompatActivity {
-
+    private String condominioId;
     private RecyclerView recyclerUnits;
     private FloatingActionButton fabAddUnit;
 
     private final List<UnitModel> listaUnits = new ArrayList<>();
     private UnitAdapter adapter;
     private FirebaseFirestore db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +47,13 @@ public class UnitsActivity extends AppCompatActivity {
         recyclerUnits.setAdapter(adapter);
 
         fabAddUnit.setOnClickListener(v -> mostrarDialogAdicionarUnidade());
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
         carregarUnits();
     }
@@ -60,6 +66,7 @@ public class UnitsActivity extends AppCompatActivity {
 
     private void carregarUnits() {
         db.collection("units")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     listaUnits.clear();
@@ -68,8 +75,9 @@ public class UnitsActivity extends AppCompatActivity {
                         String unitId = doc.getId();
                         String unidade = doc.getString("unidade");
                         String status = doc.getString("status");
+                        String condominioId = doc.getString("condominioId");
 
-                        listaUnits.add(new UnitModel(unitId, unidade, status));
+                        listaUnits.add(new UnitModel(unitId, unidade, status, condominioId));
                     }
 
                     adapter.notifyDataSetChanged();
@@ -110,6 +118,9 @@ public class UnitsActivity extends AppCompatActivity {
         unit.put("unidade", unidadeDigitada);
         unit.put("status", "ATIVA");
         unit.put("createdAt", FieldValue.serverTimestamp());
+
+        // NOUVO
+        unit.put("condominioId", condominioId);
 
         db.collection("units")
                 .document(unitId)
