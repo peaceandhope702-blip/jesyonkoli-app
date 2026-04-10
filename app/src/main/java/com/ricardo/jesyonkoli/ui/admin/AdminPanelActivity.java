@@ -2,18 +2,23 @@ package com.ricardo.jesyonkoli.ui.admin;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.ui.auth.LoginActivity;
 
 public class AdminPanelActivity extends AppCompatActivity {
+
+    private static final String TAG = "ADMIN_PANEL";
 
     private TextView tvAvatar;
     private TextView tvTotalEncomendas;
@@ -28,6 +33,7 @@ public class AdminPanelActivity extends AppCompatActivity {
     private Button btnSair;
 
     private FirebaseFirestore db;
+    private String condominioId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +56,7 @@ public class AdminPanelActivity extends AppCompatActivity {
 
         configurarAvatar();
         configurarBotoes();
-        carregarEstatisticas();
+        carregarDadosAdmin();
     }
 
     private void configurarAvatar() {
@@ -65,20 +71,91 @@ public class AdminPanelActivity extends AppCompatActivity {
         }
     }
 
+    private void carregarDadosAdmin() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser == null) {
+            Toast.makeText(this, "Usuário não autenticado", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        String uid = currentUser.getUid();
+
+        db.collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        Toast.makeText(this, "Dados do admin não encontrados", Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "Documento do admin não existe: " + uid);
+                        return;
+                    }
+
+                    String role = doc.getString("role");
+                    condominioId = doc.getString("condominioId");
+
+                    Log.d(TAG, "Role do usuário: " + role);
+                    Log.d(TAG, "condominioId do admin: " + condominioId);
+
+                    if (!"ADMIN".equals(role)) {
+                        Toast.makeText(this, "Este painel é apenas para ADMIN", Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+
+                    if (condominioId == null || condominioId.trim().isEmpty()) {
+                        Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "Admin sem condominioId");
+                        tvTotalEncomendas.setText("0");
+                        tvPendentes.setText("0");
+                        tvRetiradas.setText("0");
+                        tvUsuarios.setText("0");
+                        return;
+                    }
+
+                    carregarEstatisticas();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Erro ao carregar dados do admin", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Erro ao buscar admin", e);
+                });
+    }
+
     private void configurarBotoes() {
         btnGerenciarUsuarios.setOnClickListener(v -> {
+            if (condominioId == null || condominioId.trim().isEmpty()) {
+                Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             Intent intent = new Intent(AdminPanelActivity.this, UsuariosActivity.class);
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
 
         btnGerenciarUnidades.setOnClickListener(v -> {
+            if (condominioId == null || condominioId.trim().isEmpty()) {
+                Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             Intent intent = new Intent(AdminPanelActivity.this, UnitsActivity.class);
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
 
         btnVerEncomendas.setOnClickListener(v -> {
-            Intent intent = new Intent(AdminPanelActivity.this,
-                    com.ricardo.jesyonkoli.ui.portaria.PendentesActivity.class);
+            if (condominioId == null || condominioId.trim().isEmpty()) {
+                Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent intent = new Intent(
+                    AdminPanelActivity.this,
+                    com.ricardo.jesyonkoli.ui.portaria.PendentesActivity.class
+            );
+            intent.putExtra("condominioId", condominioId);
             startActivity(intent);
         });
 
@@ -93,11 +170,23 @@ public class AdminPanelActivity extends AppCompatActivity {
                     .setTitle("Configurações")
                     .setItems(opcoes, (dialog, which) -> {
                         if (which == 0) {
+                            if (condominioId == null || condominioId.trim().isEmpty()) {
+                                Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
                             Intent intent = new Intent(AdminPanelActivity.this, UsuariosActivity.class);
+                            intent.putExtra("condominioId", condominioId);
                             startActivity(intent);
 
                         } else if (which == 1) {
+                            if (condominioId == null || condominioId.trim().isEmpty()) {
+                                Toast.makeText(this, "Admin sem condomínio vinculado", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
                             Intent intent = new Intent(AdminPanelActivity.this, UnitsActivity.class);
+                            intent.putExtra("condominioId", condominioId);
                             startActivity(intent);
 
                         } else if (which == 2) {
@@ -131,47 +220,55 @@ public class AdminPanelActivity extends AppCompatActivity {
 
     private void carregarTotalEncomendas() {
         db.collection("encomendas")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots ->
                         tvTotalEncomendas.setText(String.valueOf(queryDocumentSnapshots.size()))
                 )
-                .addOnFailureListener(e ->
-                        tvTotalEncomendas.setText("0")
-                );
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erro ao carregar total encomendas", e);
+                    tvTotalEncomendas.setText("0");
+                });
     }
 
     private void carregarPendentes() {
         db.collection("encomendas")
                 .whereEqualTo("status", "PENDENTE")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots ->
                         tvPendentes.setText(String.valueOf(queryDocumentSnapshots.size()))
                 )
-                .addOnFailureListener(e ->
-                        tvPendentes.setText("0")
-                );
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erro ao carregar pendentes", e);
+                    tvPendentes.setText("0");
+                });
     }
 
     private void carregarRetiradas() {
         db.collection("encomendas")
                 .whereEqualTo("status", "RETIRADA")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots ->
                         tvRetiradas.setText(String.valueOf(queryDocumentSnapshots.size()))
                 )
-                .addOnFailureListener(e ->
-                        tvRetiradas.setText("0")
-                );
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erro ao carregar retiradas", e);
+                    tvRetiradas.setText("0");
+                });
     }
 
     private void carregarUsuarios() {
         db.collection("users")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots ->
                         tvUsuarios.setText(String.valueOf(queryDocumentSnapshots.size()))
                 )
-                .addOnFailureListener(e ->
-                        tvUsuarios.setText("0")
-                );
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erro ao carregar usuários", e);
+                    tvUsuarios.setText("0");
+                });
     }
 }
