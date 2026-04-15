@@ -5,19 +5,23 @@ public class UnitModel {
     private String unitId;
     private String unidade;
     private String status;
-
-    // NOUVO
     private String condominioId;
 
+    // 🔹 Obligatwa pou Firestore
     public UnitModel() {
     }
 
+    // 🔹 Constructor principal (ORDRE FIXE)
     public UnitModel(String unitId, String unidade, String status, String condominioId) {
         this.unitId = unitId;
         this.unidade = unidade;
         this.status = status;
         this.condominioId = condominioId;
     }
+
+    // =========================
+    // GETTERS
+    // =========================
 
     public String getUnitId() {
         return unitId;
@@ -35,6 +39,10 @@ public class UnitModel {
         return condominioId;
     }
 
+    // =========================
+    // SETTERS
+    // =========================
+
     public void setUnitId(String unitId) {
         this.unitId = unitId;
     }
@@ -49,5 +57,19 @@ public class UnitModel {
 
     public void setCondominioId(String condominioId) {
         this.condominioId = condominioId;
+    }
+
+    // =========================
+    // BONUS (DEBUG PRO)
+    // =========================
+
+    @Override
+    public String toString() {
+        return "UnitModel{" +
+                "unitId='" + unitId + '\'' +
+                ", unidade='" + unidade + '\'' +
+                ", status='" + status + '\'' +
+                ", condominioId='" + condominioId + '\'' +
+                '}';
     }
 }

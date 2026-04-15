@@ -6,22 +6,23 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.ricardo.jesyonkoli.R;
 
 import java.io.File;
@@ -37,36 +38,50 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     private TextView tvDestinatario;
     private Button btnBuscarMorador, btnFoto, btnSalvar;
     private ImageView imgPreview;
+    private ProgressBar progressSalvar;
+
     private String condominioId;
 
     private FirebaseFirestore db;
 
     private String moradorId = null;
     private String destinatarioNome = null;
+    private String unitIdEncontrada = null;
 
     private Bitmap fotoBitmap;
+
+    private boolean salvando = false;
 
     private final ActivityResultLauncher<Intent> cameraLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
-                        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                            Bundle extras = result.getData().getExtras();
+                        try {
+                            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                                Bundle extras = result.getData().getExtras();
 
-                            if (extras != null) {
-                                fotoBitmap = (Bitmap) extras.get("data");
+                                if (extras != null) {
+                                    Object data = extras.get("data");
 
-                                if (fotoBitmap != null) {
-                                    imgPreview.setImageBitmap(fotoBitmap);
-                                    Toast.makeText(this, "Foto capturada com sucesso", Toast.LENGTH_SHORT).show();
+                                    if (data instanceof Bitmap) {
+                                        fotoBitmap = (Bitmap) data;
+
+                                        if (imgPreview != null) {
+                                            imgPreview.setImageBitmap(fotoBitmap);
+                                        }
+
+                                        Toast.makeText(this, "Foto capturada com sucesso", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(this, "Erro ao obter imagem da câmera", Toast.LENGTH_SHORT).show();
+                                    }
                                 } else {
-                                    Toast.makeText(this, "Erro ao obter imagem da câmera", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(this, "Nenhum dado retornado pela câmera", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
-                                Toast.makeText(this, "Nenhum dado retornado pela câmera", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, "Captura de foto cancelada", Toast.LENGTH_SHORT).show();
                             }
-                        } else {
-                            Toast.makeText(this, "Captura de foto cancelada", Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {
+                            Toast.makeText(this, "Erro ao processar foto: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         }
                     }
             );
@@ -78,9 +93,11 @@ public class NovaEncomendaActivity extends AppCompatActivity {
                         if (isGranted) {
                             abrirCameraDiretamente();
                         } else {
-                            Toast.makeText(this,
+                            Toast.makeText(
+                                    this,
                                     "Permissão da câmera negada. Autorize para tirar foto da encomenda.",
-                                    Toast.LENGTH_LONG).show();
+                                    Toast.LENGTH_LONG
+                            ).show();
                         }
                     }
             );
@@ -96,20 +113,23 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         etDescricao = findViewById(R.id.etDescricao);
         tvDestinatario = findViewById(R.id.tvDestinatario);
         imgPreview = findViewById(R.id.imgPreview);
+        progressSalvar = findViewById(R.id.progressSalvar);
 
+        ImageView btnBack = findViewById(R.id.btnBack);
         btnBuscarMorador = findViewById(R.id.btnBuscarMorador);
         btnFoto = findViewById(R.id.btnFoto);
         btnSalvar = findViewById(R.id.btnSalvar);
 
+        btnBack.setOnClickListener(v -> finish());
         btnBuscarMorador.setOnClickListener(v -> buscarMoradorPorUnidade());
         btnFoto.setOnClickListener(v -> verificarPermissaoEAbrirCamera());
         btnSalvar.setOnClickListener(v -> salvarEncomenda());
+
         condominioId = getIntent().getStringExtra("condominioId");
 
         if (condominioId == null || condominioId.trim().isEmpty()) {
             Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
             finish();
-            return;
         }
     }
 
@@ -133,7 +153,11 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     }
 
     private void buscarMoradorPorUnidade() {
-        String unidade = etUnidade.getText().toString().trim();
+
+        String unidade = etUnidade.getText().toString().trim().toUpperCase();
+
+        etUnidade.setText(unidade);
+        etUnidade.setSelection(unidade.length());
 
         if (unidade.isEmpty()) {
             Toast.makeText(this, "Digite a unidade", Toast.LENGTH_SHORT).show();
@@ -142,50 +166,53 @@ public class NovaEncomendaActivity extends AppCompatActivity {
 
         moradorId = null;
         destinatarioNome = null;
+        unitIdEncontrada = null;
         tvDestinatario.setText("Buscando morador...");
 
-        db.collection("users")
-                .whereEqualTo("role", "MORADOR")
-                .whereEqualTo("status", "ATIVO")
+        db.collection("units")
                 .whereEqualTo("unidade", unidade)
+                .whereEqualTo("condominioId", condominioId)
+                .whereEqualTo("status", "ATIVA")
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        tvDestinatario.setText("Morador não encontrado");
-                        Toast.makeText(this, "Nenhum morador ativo encontrado para esta unidade", Toast.LENGTH_SHORT).show();
+                .addOnSuccessListener(unitSnapshots -> {
+
+                    if (unitSnapshots.isEmpty()) {
+                        tvDestinatario.setText("Unidade não encontrada");
                         return;
                     }
 
-                    if (queryDocumentSnapshots.size() > 1) {
-                        tvDestinatario.setText("Mais de um morador encontrado");
-                        Toast.makeText(this, "Erro de dados: mais de um morador ativo nesta unidade", Toast.LENGTH_LONG).show();
-                        return;
-                    }
+                    DocumentSnapshot unitDoc = unitSnapshots.getDocuments().get(0);
+                    unitIdEncontrada = unitDoc.getId();
 
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        moradorId = document.getId();
+                    db.collection("users")
+                            .whereEqualTo("role", "MORADOR")
+                            .whereEqualTo("status", "ATIVO")
+                            .whereEqualTo("unitId", unitIdEncontrada)
+                            .whereEqualTo("condominioId", condominioId)
+                            .get()
+                            .addOnSuccessListener(userSnapshots -> {
 
-                        String nome = document.getString("nome");
-                        if (nome == null || nome.trim().isEmpty()) {
-                            nome = "Sem nome cadastrado";
-                        }
+                                if (userSnapshots.isEmpty()) {
+                                    tvDestinatario.setText("Morador não encontrado");
+                                    return;
+                                }
 
-                        destinatarioNome = nome;
-                        tvDestinatario.setText(destinatarioNome);
-                        Toast.makeText(this, "Morador encontrado", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    tvDestinatario.setText("Erro ao buscar morador");
-                    Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                DocumentSnapshot userDoc = userSnapshots.getDocuments().get(0);
+                                moradorId = userDoc.getId();
+
+                                destinatarioNome = userDoc.getString("nome");
+                                tvDestinatario.setText(destinatarioNome);
+                            });
                 });
     }
 
     private void salvarEncomenda() {
+        if (salvando) {
+            return;
+        }
+
         String unidade = etUnidade.getText().toString().trim();
         String descricao = etDescricao.getText().toString().trim();
-
-
 
         if (unidade.isEmpty()) {
             Toast.makeText(this, "Digite a unidade", Toast.LENGTH_SHORT).show();
@@ -197,7 +224,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
             return;
         }
 
-        if (moradorId == null || destinatarioNome == null) {
+        if (moradorId == null || destinatarioNome == null || unitIdEncontrada == null) {
             Toast.makeText(this, "Busque o morador antes de salvar", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -212,10 +239,13 @@ public class NovaEncomendaActivity extends AppCompatActivity {
             return;
         }
 
+        setSalvandoState(true);
+
         String portariaUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         Map<String, Object> encomenda = new HashMap<>();
         encomenda.put("unidade", unidade);
+        encomenda.put("unitId", unitIdEncontrada);
         encomenda.put("moradorId", moradorId);
         encomenda.put("destinatario", destinatarioNome);
         encomenda.put("descricao", descricao);
@@ -230,6 +260,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     private void registrarEncomendaLocal(Map<String, Object> encomenda) {
         if (fotoBitmap == null) {
             Toast.makeText(this, "Tire uma foto da encomenda", Toast.LENGTH_SHORT).show();
+            setSalvandoState(false);
             return;
         }
 
@@ -237,6 +268,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
 
         if (fotoLocalPath == null) {
             Toast.makeText(this, "Erro ao salvar foto no telefone", Toast.LENGTH_LONG).show();
+            setSalvandoState(false);
             return;
         }
 
@@ -247,10 +279,30 @@ public class NovaEncomendaActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(this, "Encomenda registrada com sucesso", Toast.LENGTH_LONG).show();
                     limparCampos();
+                    setSalvandoState(false);
                 })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Erro ao salvar encomenda: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                );
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Erro ao salvar encomenda: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    setSalvandoState(false);
+                });
+    }
+
+    private void setSalvandoState(boolean salvandoAgora) {
+        salvando = salvandoAgora;
+
+        btnSalvar.setEnabled(!salvandoAgora);
+        btnBuscarMorador.setEnabled(!salvandoAgora);
+        btnFoto.setEnabled(!salvandoAgora);
+        etUnidade.setEnabled(!salvandoAgora);
+        etDescricao.setEnabled(!salvandoAgora);
+
+        if (salvandoAgora) {
+            btnSalvar.setText("Salvando...");
+            progressSalvar.setVisibility(View.VISIBLE);
+        } else {
+            btnSalvar.setText("Salvar");
+            progressSalvar.setVisibility(View.GONE);
+        }
     }
 
     private String salvarFotoLocalmente(Bitmap bitmap) {
@@ -267,9 +319,9 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         File arquivo = new File(diretorio, nomeArquivo);
 
         try (FileOutputStream fos = new FileOutputStream(arquivo)) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, fos);
+            boolean ok = bitmap.compress(Bitmap.CompressFormat.JPEG, 70, fos);
             fos.flush();
-            return arquivo.getAbsolutePath();
+            return ok ? arquivo.getAbsolutePath() : null;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -280,10 +332,14 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         etUnidade.setText("");
         etDescricao.setText("");
         tvDestinatario.setText("Nenhum morador carregado");
-        imgPreview.setImageDrawable(null);
+
+        if (imgPreview != null) {
+            imgPreview.setImageDrawable(null);
+        }
 
         moradorId = null;
         destinatarioNome = null;
+        unitIdEncontrada = null;
         fotoBitmap = null;
     }
 }

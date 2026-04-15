@@ -3,19 +3,17 @@ package com.ricardo.jesyonkoli.ui.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 import com.ricardo.jesyonkoli.R;
 
 import java.util.HashMap;
@@ -41,13 +39,10 @@ public class RegisterActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         etInvitationCode = findViewById(R.id.etInvitationCode);
 
-        Button btnRegister = findViewById(R.id.btnGoRegister);
-        Button btnGoLogin = findViewById(R.id.btnLogin);
+        findViewById(R.id.btnGoRegister).setOnClickListener(v -> register());
 
-        btnRegister.setOnClickListener(v -> register());
-
-        btnGoLogin.setOnClickListener(v -> {
-            startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
+        findViewById(R.id.btnLogin).setOnClickListener(v -> {
+            startActivity(new Intent(this, LoginActivity.class));
             finish();
         });
     }
@@ -56,224 +51,158 @@ public class RegisterActivity extends AppCompatActivity {
         String nome = etNome.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String pass = etPassword.getText().toString().trim();
-        String code = etInvitationCode.getText().toString().trim();
+        String code = etInvitationCode.getText().toString().trim().toUpperCase();
 
-        if (nome.isEmpty()) {
-            showToast("Informe o nome completo.");
-            return;
-        }
-
-        if (email.isEmpty()) {
-            showToast("Informe o e-mail.");
+        if (nome.isEmpty() || email.isEmpty() || pass.isEmpty() || code.isEmpty()) {
+            show("Preencha todos os campos");
             return;
         }
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showToast("E-mail inválido.");
-            return;
-        }
-
-        if (pass.isEmpty()) {
-            showToast("Informe a senha.");
+            show("Email inválido");
             return;
         }
 
         if (pass.length() < 6) {
-            showToast("A senha deve ter pelo menos 6 caracteres.");
+            show("Senha deve ter pelo menos 6 caracteres");
             return;
         }
 
-        if (code.isEmpty()) {
-            showToast("Informe o código de convite.");
-            return;
-        }
-
-        checkInvitationCodeAndContinue(code, nome, email, pass);
+        checkCode(code, nome, email, pass);
     }
 
-    private void checkInvitationCodeAndContinue(String code, String nome, String email, String pass) {
+    private void checkCode(String code, String nome, String email, String pass) {
         db.collection("invitationCodes")
-                .whereEqualTo("code", code)
-                .whereEqualTo("active", true)
-                .limit(1)
+                .document(code)
                 .get()
-                .addOnSuccessListener(qs -> {
-                    if (qs.isEmpty()) {
-                        showToast("Código inválido ou inativo.");
+                .addOnSuccessListener(doc -> {
+
+                    if (!doc.exists()) {
+                        show("Código inválido");
                         return;
                     }
 
-                    DocumentSnapshot doc = qs.getDocuments().get(0);
+                    Boolean active = doc.getBoolean("active");
+                    if (active == null || !active) {
+                        show("Código inativo");
+                        return;
+                    }
 
                     Long uses = doc.getLong("uses");
                     Long maxUses = doc.getLong("maxUses");
 
                     if (uses != null && maxUses != null && uses >= maxUses) {
-                        showToast("Este código já atingiu o limite de uso.");
-                        return;
-                    }
-
-                    Timestamp expireAt = doc.getTimestamp("expireAt");
-                    if (expireAt != null && expireAt.toDate().before(new java.util.Date())) {
-                        showToast("Este código expirou.");
+                        show("Código expirado");
                         return;
                     }
 
                     String unitId = doc.getString("unitId");
                     String condominioId = doc.getString("condominioId");
 
-                    if (unitId == null || unitId.trim().isEmpty()) {
-                        showToast("Unidade não definida no código de convite.");
+                    if (unitId == null || unitId.trim().isEmpty()
+                            || condominioId == null || condominioId.trim().isEmpty()) {
+                        show("Código inválido (dados incompletos)");
                         return;
                     }
 
-                    if (condominioId == null || condominioId.trim().isEmpty()) {
-                        showToast("Condomínio não definido no código de convite.");
-                        return;
-                    }
-
-                    verifyUnitAndContinue(nome, email, pass, unitId.trim(), condominioId.trim(), doc.getReference());
+                    verifyUnit(nome, email, pass, unitId, condominioId, doc.getReference());
                 })
-                .addOnFailureListener(e ->
-                        showToast("Erro ao verificar o código: " + e.getMessage())
-                );
+                .addOnFailureListener(e -> show("Erro ao verificar código: " + e.getMessage()));
     }
 
-    private void verifyUnitAndContinue(String nome, String email, String pass, String unitId, String condominioId, DocumentReference codeRef) {
+    private void verifyUnit(String nome, String email, String pass,
+                            String unitId, String condominioId, DocumentReference codeRef) {
+
         db.collection("units")
                 .document(unitId)
                 .get()
                 .addOnSuccessListener(unitDoc -> {
+
                     if (!unitDoc.exists()) {
-                        showToast("A unidade informada não existe.");
+                        show("Unidade não existe");
                         return;
                     }
 
-                    String unitStatus = unitDoc.getString("status");
-                    String unitCondominioId = unitDoc.getString("condominioId");
-
-                    if (unitStatus != null && unitStatus.equalsIgnoreCase("INATIVA")) {
-                        showToast("Esta unidade está inativa.");
-                        return;
+                    String unidade = unitDoc.getString("unidade");
+                    if (unidade == null || unidade.trim().isEmpty()) {
+                        unidade = unitId;
                     }
 
-                    if (unitCondominioId == null || !unitCondominioId.equals(condominioId)) {
-                        showToast("Esta unidade não pertence ao condomínio do convite.");
-                        return;
-                    }
-
-                    createUserAndProfile(nome, email, pass, unitId, condominioId, codeRef);
+                    createUser(nome, email, pass, unitId, unidade, condominioId, codeRef);
                 })
-                .addOnFailureListener(e ->
-                        showToast("Erro ao verificar a unidade: " + e.getMessage())
-                );
+                .addOnFailureListener(e -> show("Erro ao verificar unidade: " + e.getMessage()));
     }
 
-    private void createUserAndProfile(String nome, String email, String pass, String unitId, String condominioId, DocumentReference codeRef) {
+    private void createUser(String nome, String email, String pass,
+                            String unitId, String unidade, String condominioId, DocumentReference codeRef) {
+
         auth.createUserWithEmailAndPassword(email, pass)
                 .addOnSuccessListener(result -> {
-                    FirebaseUser firebaseUser = result.getUser();
 
-                    if (firebaseUser == null) {
-                        showToast("Não foi possível criar o usuário.");
+                    if (result.getUser() == null) {
+                        show("Erro ao criar conta");
                         return;
                     }
 
-                    String uid = firebaseUser.getUid();
+                    String uid = result.getUser().getUid();
 
-                    desactivateOldMorador(unitId, condominioId, () -> {
-                        Map<String, Object> user = new HashMap<>();
-                        user.put("nome", nome);
-                        user.put("email", email);
-                        user.put("role", "MORADOR");
-                        user.put("status", "ATIVO");
-                        user.put("unitId", unitId);
-                        user.put("unidade", unitId);
-                        user.put("condominioId", condominioId);
-                        user.put("createdAt", FieldValue.serverTimestamp());
+                    Map<String, Object> user = new HashMap<>();
+                    user.put("nome", nome);
+                    user.put("email", email);
+                    user.put("role", "MORADOR");
+                    user.put("unitId", unitId);         // backend
+                    user.put("unidade", unidade);       // affichage
+                    user.put("condominioId", condominioId);
+                    user.put("status", "ATIVO");
+                    user.put("createdAt", FieldValue.serverTimestamp());
 
-                        db.collection("users")
-                                .document(uid)
-                                .set(user)
-                                .addOnSuccessListener(unused ->
-                                        incrementInvitationCodeUsage(codeRef, firebaseUser)
-                                )
-                                .addOnFailureListener(e ->
-                                        rollbackAuthUser(firebaseUser, "Erro ao salvar no Firestore: " + e.getMessage())
-                                );
-                    });
+                    db.collection("users")
+                            .document(uid)
+                            .set(user)
+                            .addOnSuccessListener(unused ->
+                                    inativarMoradoresAntigos(uid, condominioId, unitId, () -> {
+                                        codeRef.update("uses", FieldValue.increment(1))
+                                                .addOnSuccessListener(aVoid -> {
+                                                    show("Conta criada com sucesso!");
+                                                    RoleGate.routeUser(this);
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    show("Conta criada, mas erro ao atualizar uso do código");
+                                                    RoleGate.routeUser(this);
+                                                });
+                                    })
+                            )
+                            .addOnFailureListener(e -> show("Erro ao salvar usuário: " + e.getMessage()));
                 })
-                .addOnFailureListener(e ->
-                        showToast("Erro ao criar conta: " + e.getMessage())
-                );
+                .addOnFailureListener(e -> show("Erro ao criar conta: " + e.getMessage()));
     }
 
-    private void desactivateOldMorador(String unitId, String condominioId, Runnable onComplete) {
+    private void inativarMoradoresAntigos(String newUid, String condominioId, String unitId, Runnable onDone) {
         db.collection("users")
-                .whereEqualTo("unitId", unitId)
-                .whereEqualTo("condominioId", condominioId)
                 .whereEqualTo("role", "MORADOR")
+                .whereEqualTo("condominioId", condominioId)
+                .whereEqualTo("unitId", unitId)
                 .whereEqualTo("status", "ATIVO")
                 .get()
-                .addOnSuccessListener(query -> {
-                    if (query.isEmpty()) {
-                        onComplete.run();
-                        return;
+                .addOnSuccessListener(querySnapshot -> {
+
+                    WriteBatch batch = db.batch();
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        if (!doc.getId().equals(newUid)) {
+                            batch.update(doc.getReference(), "status", "INATIVO");
+                            batch.update(doc.getReference(), "updatedAt", FieldValue.serverTimestamp());
+                        }
                     }
 
-                    final int total = query.size();
-                    final int[] done = {0};
-
-                    for (DocumentSnapshot doc : query.getDocuments()) {
-                        doc.getReference()
-                                .update("status", "INATIVO")
-                                .addOnSuccessListener(unused -> {
-                                    done[0]++;
-                                    if (done[0] == total) {
-                                        onComplete.run();
-                                    }
-                                })
-                                .addOnFailureListener(e ->
-                                        showToast("Erro ao inativar morador anterior: " + e.getMessage())
-                                );
-                    }
+                    batch.commit()
+                            .addOnSuccessListener(unused -> onDone.run())
+                            .addOnFailureListener(e -> show("Usuário criado, mas erro ao inativar morador antigo"));
                 })
-                .addOnFailureListener(e ->
-                        showToast("Erro ao verificar moradores ativos: " + e.getMessage())
-                );
+                .addOnFailureListener(e -> show("Erro ao buscar moradores antigos: " + e.getMessage()));
     }
 
-    private void incrementInvitationCodeUsage(DocumentReference codeRef, FirebaseUser firebaseUser) {
-        codeRef.update("uses", FieldValue.increment(1))
-                .addOnSuccessListener(unused -> {
-                    showToast("Conta criada com sucesso.");
-
-                    auth.signOut();
-                    startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    db.collection("users")
-                            .document(firebaseUser.getUid())
-                            .delete()
-                            .addOnCompleteListener(task ->
-                                    rollbackAuthUser(firebaseUser,
-                                            "A conta quase foi criada, mas houve erro ao atualizar o código: " + e.getMessage())
-                            );
-                });
-    }
-
-    private void rollbackAuthUser(FirebaseUser firebaseUser, String errorMessage) {
-        if (firebaseUser == null) {
-            showToast(errorMessage);
-            return;
-        }
-
-        firebaseUser.delete()
-                .addOnCompleteListener(task -> showToast(errorMessage));
-    }
-
-    private void showToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    private void show(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 }

@@ -3,6 +3,7 @@ package com.ricardo.jesyonkoli.ui.portaria;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +34,12 @@ public class HistoricoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_historico);
+
+        ImageView btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v -> {
+            finish(); // 🔥 retounen sou ekran anvan an
+        });
 
         condominioId = getIntent().getStringExtra("condominioId");
 

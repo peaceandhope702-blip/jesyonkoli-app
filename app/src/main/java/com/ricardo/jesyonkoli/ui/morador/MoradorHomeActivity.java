@@ -2,8 +2,11 @@ package com.ricardo.jesyonkoli.ui.morador;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +24,7 @@ import com.ricardo.jesyonkoli.data.adapter.MoradorEncomendaAdapter;
 import com.ricardo.jesyonkoli.data.model.Encomenda;
 import com.ricardo.jesyonkoli.ui.auth.LoginActivity;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +35,7 @@ public class MoradorHomeActivity extends AppCompatActivity {
     private TextView tvEmpty, tvLogout, tvSaudacao, tvResumo;
     private TextView tvPendentesCount, tvHistoricoCount;
     private Button btnPendentes, btnHistorico;
+    private EditText etBuscar;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -40,6 +45,8 @@ public class MoradorHomeActivity extends AppCompatActivity {
     private final List<Encomenda> listaExibida = new ArrayList<>();
 
     private MoradorEncomendaAdapter adapter;
+
+    private boolean mostrandoPendentes = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +61,9 @@ public class MoradorHomeActivity extends AppCompatActivity {
         tvResumo = findViewById(R.id.tvResumo);
         tvPendentesCount = findViewById(R.id.tvPendentesCount);
         tvHistoricoCount = findViewById(R.id.tvHistoricoCount);
-
         btnPendentes = findViewById(R.id.btnPendentes);
         btnHistorico = findViewById(R.id.btnHistorico);
+        etBuscar = findViewById(R.id.etBuscar);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
@@ -75,8 +82,32 @@ public class MoradorHomeActivity extends AppCompatActivity {
         recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(adapter);
 
-        btnPendentes.setOnClickListener(v -> mostrarPendentes());
-        btnHistorico.setOnClickListener(v -> mostrarHistorico());
+        btnPendentes.setOnClickListener(v -> {
+            mostrandoPendentes = true;
+            etBuscar.setText("");
+            mostrarPendentes();
+        });
+
+        btnHistorico.setOnClickListener(v -> {
+            mostrandoPendentes = false;
+            etBuscar.setText("");
+            mostrarHistorico();
+        });
+
+        etBuscar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filtrarEncomendas(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
 
         tvLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
@@ -143,7 +174,12 @@ public class MoradorHomeActivity extends AppCompatActivity {
 
                     progress.setVisibility(View.GONE);
                     atualizarResumo();
-                    mostrarPendentes();
+
+                    if (mostrandoPendentes) {
+                        mostrarPendentes();
+                    } else {
+                        mostrarHistorico();
+                    }
                 })
                 .addOnFailureListener(e -> {
                     progress.setVisibility(View.GONE);
@@ -176,12 +212,7 @@ public class MoradorHomeActivity extends AppCompatActivity {
         btnPendentes.setAlpha(1f);
         btnHistorico.setAlpha(0.7f);
 
-        if (listaExibida.isEmpty()) {
-            tvEmpty.setText("Nenhuma encomenda pendente.");
-            tvEmpty.setVisibility(View.VISIBLE);
-        } else {
-            tvEmpty.setVisibility(View.GONE);
-        }
+        atualizarEstadoLista();
     }
 
     private void mostrarHistorico() {
@@ -192,11 +223,61 @@ public class MoradorHomeActivity extends AppCompatActivity {
         btnHistorico.setAlpha(1f);
         btnPendentes.setAlpha(0.7f);
 
+        atualizarEstadoLista();
+    }
+
+    private void filtrarEncomendas(String texto) {
+        String busca = normalizar(texto);
+
+        listaExibida.clear();
+
+        List<Encomenda> base = mostrandoPendentes ? listaPendentes : listaHistorico;
+
+        if (busca.isEmpty()) {
+            listaExibida.addAll(base);
+        } else {
+            for (Encomenda encomenda : base) {
+                String unidade = normalizar(encomenda.getUnidade());
+                String destinatario = normalizar(encomenda.getDestinatario());
+                String descricao = normalizar(encomenda.getDescricao());
+
+                if (unidade.contains(busca)
+                        || destinatario.contains(busca)
+                        || descricao.contains(busca)) {
+                    listaExibida.add(encomenda);
+                }
+            }
+        }
+
+        adapter.notifyDataSetChanged();
+        atualizarEstadoLista();
+    }
+
+    private void atualizarEstadoLista() {
         if (listaExibida.isEmpty()) {
-            tvEmpty.setText("Nenhuma encomenda no histórico.");
+            if (etBuscar.getText().toString().trim().isEmpty()) {
+                if (mostrandoPendentes) {
+                    tvEmpty.setText("Nenhuma encomenda pendente.");
+                } else {
+                    tvEmpty.setText("Nenhuma encomenda no histórico.");
+                }
+            } else {
+                tvEmpty.setText("Nenhum resultado encontrado.");
+            }
             tvEmpty.setVisibility(View.VISIBLE);
         } else {
             tvEmpty.setVisibility(View.GONE);
         }
+    }
+
+    private String normalizar(String texto) {
+        if (texto == null) {
+            return "";
+        }
+
+        String textoNormalizado = texto.trim().toLowerCase();
+
+        return Normalizer.normalize(textoNormalizado, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
 }

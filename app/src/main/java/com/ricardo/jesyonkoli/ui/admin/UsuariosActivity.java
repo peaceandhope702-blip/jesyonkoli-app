@@ -3,6 +3,7 @@ package com.ricardo.jesyonkoli.ui.admin;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -25,6 +26,8 @@ import java.util.List;
 
 public class UsuariosActivity extends AppCompatActivity {
 
+    private static final String TAG = "USUARIOS_ACTIVITY";
+
     private RecyclerView recyclerUsuarios;
     private EditText etPesquisarUsuario;
 
@@ -33,6 +36,7 @@ public class UsuariosActivity extends AppCompatActivity {
     private final List<UsuarioModel> listaFiltrada = new ArrayList<>();
 
     private FirebaseFirestore db;
+    private String condominioId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +47,15 @@ public class UsuariosActivity extends AppCompatActivity {
         etPesquisarUsuario = findViewById(R.id.etPesquisarUsuario);
 
         db = FirebaseFirestore.getInstance();
+        condominioId = getIntent().getStringExtra("condominioId");
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        Log.d(TAG, "condominioId recebido: " + condominioId);
 
         adapter = new UsuarioAdapter(
                 this,
@@ -104,7 +117,9 @@ public class UsuariosActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        carregarUsuarios();
+        if (condominioId != null && !condominioId.trim().isEmpty()) {
+            carregarUsuarios();
+        }
     }
 
     private void ativarMoradorExclusivo(String userId, String unidadeId) {
@@ -112,6 +127,7 @@ public class UsuariosActivity extends AppCompatActivity {
                 .whereEqualTo("role", "MORADOR")
                 .whereEqualTo("unitId", unidadeId)
                 .whereEqualTo("status", "ATIVO")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
 
@@ -155,6 +171,7 @@ public class UsuariosActivity extends AppCompatActivity {
 
     private void carregarUsuarios() {
         db.collection("users")
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     listaUsuarios.clear();
@@ -162,15 +179,21 @@ public class UsuariosActivity extends AppCompatActivity {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         UsuarioModel usuario = new UsuarioModel();
 
+                        String unidade = doc.getString("unidade");
+                        String unitId = doc.getString("unitId");
+
+                        if (unidade == null || unidade.trim().isEmpty()) {
+                            unidade = unitId;
+                        }
+
                         usuario.setId(doc.getId());
                         usuario.setNome(doc.getString("nome"));
                         usuario.setEmail(doc.getString("email"));
-                        usuario.setUnidade(doc.getString("unidade"));
-                        usuario.setUnitId(doc.getString("unitId"));
+                        usuario.setUnidade(unidade);
+                        usuario.setUnitId(unitId);
                         usuario.setStatus(doc.getString("status"));
                         usuario.setPerfil(doc.getString("role"));
-
-
+                        usuario.setCondominioId(doc.getString("condominioId"));
 
                         listaUsuarios.add(usuario);
                     }
@@ -181,7 +204,6 @@ public class UsuariosActivity extends AppCompatActivity {
                         Toast.makeText(this, "Erro ao carregar usuários: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
-
     private void filtrarUsuarios(@NonNull String texto) {
         listaFiltrada.clear();
 

@@ -21,6 +21,8 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
 
     private TextView tvDestinatario, tvUnidade, tvDescricao, tvStatus;
     private ImageView imgFotoDetalhe, imgAssinaturaDetalhe;
+
+
     private Button btnRegistrarRetirada;
 
     private FirebaseFirestore db;
@@ -31,6 +33,12 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detalhe_encomenda);
+
+        ImageView btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v -> {
+            finish(); // 🔥 retounen sou ekran anvan an
+        });
 
         tvDestinatario = findViewById(R.id.tvDestinatarioDetalhe);
         tvUnidade = findViewById(R.id.tvUnidadeDetalhe);

@@ -33,13 +33,16 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_unit, parent, false);
+
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+
         UnitModel unit = lista.get(position);
 
         holder.tvUnitId.setText("ID: " + safe(unit.getUnitId(), "--"));
@@ -61,6 +64,7 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
         String finalStatus = status;
 
         holder.btnToggleUnitStatus.setOnClickListener(v -> {
+
             if (holder.getAdapterPosition() == RecyclerView.NO_POSITION) return;
 
             String novoStatus = finalStatus.equalsIgnoreCase("ATIVA")
@@ -73,43 +77,58 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
                     .setTitle("Confirmação")
                     .setMessage("Tem certeza que deseja " + acao + " esta unidade?")
                     .setPositiveButton("Confirmar", (dialog, which) -> {
+
                         FirebaseFirestore.getInstance()
                                 .collection("units")
                                 .document(unit.getUnitId())
                                 .update("status", novoStatus)
                                 .addOnSuccessListener(unused -> {
+
                                     UnitModel atualizado = new UnitModel(
                                             unit.getUnitId(),
                                             unit.getUnidade(),
-                                            unit.getCondominioId(),
-                                            novoStatus
+                                            novoStatus,
+                                            unit.getCondominioId()
                                     );
 
                                     int pos = holder.getAdapterPosition();
+
                                     if (pos != RecyclerView.NO_POSITION) {
                                         lista.set(pos, atualizado);
                                         notifyItemChanged(pos);
                                     }
 
-                                    Toast.makeText(v.getContext(),
+                                    Toast.makeText(
+                                            v.getContext(),
                                             "Unidade atualizada com sucesso",
-                                            Toast.LENGTH_SHORT).show();
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+
                                 })
-                                .addOnFailureListener(e -> Toast.makeText(
-                                        v.getContext(),
-                                        "Erro ao atualizar unidade: " + e.getMessage(),
-                                        Toast.LENGTH_LONG
-                                ).show());
+                                .addOnFailureListener(e ->
+                                        Toast.makeText(
+                                                v.getContext(),
+                                                "Erro ao atualizar unidade: " + e.getMessage(),
+                                                Toast.LENGTH_LONG
+                                        ).show()
+                                );
+
                     })
                     .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
                     .show();
+
         });
 
         holder.btnGerarConvite.setOnClickListener(v -> {
+
             if (!"ATIVA".equalsIgnoreCase(unit.getStatus())) {
-                Toast.makeText(v.getContext(),
+
+                Toast.makeText(
+                        v.getContext(),
                         "A unidade precisa estar ATIVA para gerar convite",
-                        Toast.LENGTH_SHORT).show();
+                        Toast.LENGTH_SHORT
+                ).show();
+
                 return;
             }
 
@@ -123,16 +142,44 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
     }
 
     private void gerarConvite(UnitModel unit, ViewHolder holder) {
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         String codigo = gerarCodigoAleatorio();
+
         String adminUid = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
+        if (adminUid == null) {
+
+            Toast.makeText(
+                    holder.itemView.getContext(),
+                    "Usuário não autenticado",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
+        String condominioId = unit.getCondominioId();
+
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+
+            Toast.makeText(
+                    holder.itemView.getContext(),
+                    "Condomínio da unidade não encontrado",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
         Map<String, Object> convite = new HashMap<>();
+
         convite.put("code", codigo);
         convite.put("unitId", unit.getUnitId());
+        convite.put("condominioId", condominioId);
         convite.put("active", true);
         convite.put("uses", 0);
         convite.put("maxUses", 1);
@@ -140,27 +187,38 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
         convite.put("createdBy", adminUid);
 
         db.collection("invitationCodes")
-                .add(convite)
+                .document(codigo) // 🔥 code = documentId
+                .set(convite)
                 .addOnSuccessListener(documentReference -> {
+
                     new AlertDialog.Builder(holder.itemView.getContext())
                             .setTitle("Convite gerado")
-                            .setMessage("Unidade: " + unit.getUnidade() + "\n\nCódigo: " + codigo)
+                            .setMessage(
+                                    "Unidade: " + unit.getUnidade()
+                                            + "\n\nCódigo: " + codigo
+                            )
                             .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                             .show();
+
                 })
-                .addOnFailureListener(e -> Toast.makeText(
-                        holder.itemView.getContext(),
-                        "Erro ao gerar convite: " + e.getMessage(),
-                        Toast.LENGTH_LONG
-                ).show());
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                holder.itemView.getContext(),
+                                "Erro ao gerar convite: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
     }
 
     private String gerarCodigoAleatorio() {
+
         String caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         Random random = new Random();
+
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < 6; i++) {
+
             int index = random.nextInt(caracteres.length());
             sb.append(caracteres.charAt(index));
         }
@@ -174,14 +232,17 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
+
         TextView tvUnitId, tvUnidade, tvStatus;
         Button btnToggleUnitStatus, btnGerarConvite;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+
             tvUnitId = itemView.findViewById(R.id.tvUnitId);
             tvUnidade = itemView.findViewById(R.id.tvUnidade);
             tvStatus = itemView.findViewById(R.id.tvStatus);
+
             btnToggleUnitStatus = itemView.findViewById(R.id.btnToggleUnitStatus);
             btnGerarConvite = itemView.findViewById(R.id.btnGerarConvite);
         }

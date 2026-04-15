@@ -2,6 +2,7 @@ package com.ricardo.jesyonkoli.ui.portaria;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,6 +31,12 @@ public class PendentesActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pendentes);
+
+        ImageView btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v -> {
+            finish(); // 🔥 retounen sou ekran anvan an
+        });
 
         recyclerPendentes = findViewById(R.id.recyclerPendentes);
         db = FirebaseFirestore.getInstance();

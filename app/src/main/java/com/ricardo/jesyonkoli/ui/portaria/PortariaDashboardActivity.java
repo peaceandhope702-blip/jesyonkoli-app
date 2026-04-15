@@ -110,7 +110,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
                     if (!userDoc.exists()) {
                         Log.e(TAG, "Documento do usuário não encontrado");
-                        tvTituloDashboard.setText("Olá 👋");
+                        tvTituloDashboard.setText("PORTARIA- ");
                         return;
                     }
 
@@ -121,7 +121,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
                     if (condominioIdUser == null || condominioIdUser.trim().isEmpty()) {
                         Log.e(TAG, "condominioId vazio no user");
-                        tvTituloDashboard.setText("Olá 👋");
+                        tvTituloDashboard.setText("PORTARIA-");
                         return;
                     }
 
@@ -131,7 +131,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Erro ao buscar usuário", e);
-                    tvTituloDashboard.setText("Olá 👋");
+                    tvTituloDashboard.setText("PORTARIA-");
                 });
     }
     private void carregarNomeCondominio(String condominioId) {
@@ -145,7 +145,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
                     if (!doc.exists()) {
                         Log.e(TAG, "Documento do condomínio não existe");
-                        tvTituloDashboard.setText("Olá 👋");
+                        tvTituloDashboard.setText("PORTARIA-");
                         return;
                     }
 
@@ -160,17 +160,17 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                     }
 
                     if (nome != null && !nome.trim().isEmpty()) {
-                        String titulo = "Olá, " + nome + " 👋";
+                        String titulo = "PORTARIA- " + nome ;
                         tvTituloDashboard.setText(titulo);
                         Log.d(TAG, "Título final aplicado: " + titulo);
                     } else {
                         Log.e(TAG, "Nenhum nome encontrado no documento");
-                        tvTituloDashboard.setText("Olá 👋");
+                        tvTituloDashboard.setText("PORTARIA- ");
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Erro ao buscar condomínio", e);
-                    tvTituloDashboard.setText("Olá 👋");
+                    tvTituloDashboard.setText("PORTARIA- ");
                 });
     }
 
