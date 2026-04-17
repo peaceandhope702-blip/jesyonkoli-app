@@ -90,4 +90,6 @@ public class UsuarioModel {
     public void setCondominioId(String condominioId) {
         this.condominioId = condominioId;
     }
+
+
 }

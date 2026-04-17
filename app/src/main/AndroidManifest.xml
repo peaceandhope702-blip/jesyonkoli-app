@@ -34,7 +34,11 @@
 
         <activity android:name=".ui.admin.UnitsActivity" />
 
+        <activity android:name=".ui.portaria.MoradoresActivity"/>
+
         <activity android:name=".ui.morador.MoradorDetalheEncomendaActivity" />
+
+        <activity android:name=".ui.portaria.UnidadesConviteActivity"/>
 
         <activity
             android:name=".SplashActivity"

@@ -161,7 +161,10 @@ public class RegisterActivity extends AppCompatActivity {
                             .set(user)
                             .addOnSuccessListener(unused ->
                                     inativarMoradoresAntigos(uid, condominioId, unitId, () -> {
-                                        codeRef.update("uses", FieldValue.increment(1))
+                                        codeRef.update(
+                                                        "uses", FieldValue.increment(1),
+                                                        "used", true
+                                                )
                                                 .addOnSuccessListener(aVoid -> {
                                                     show("Conta criada com sucesso!");
                                                     RoleGate.routeUser(this);

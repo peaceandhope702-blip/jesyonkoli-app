@@ -170,15 +170,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginBottom="16dp">
 
-            <TextView
-                android:id="@+id/tvMensagemTitulo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=" "
-                android:textColor="#222222"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="10dp" />
+
 
             <TextView
                 android:id="@+id/tvEmpty"
@@ -230,6 +222,14 @@
                 android:layout_height="wrap_content"
                 android:text="Ver Histórico"
                 android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btnMoradores"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver Moradores"
+                android:layout_marginTop="10dp"/>
+
 
         </LinearLayout>
 

@@ -56,6 +56,10 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         tvRetiradasCount = findViewById(R.id.tvRetiradasCount);
         tvEmpty = findViewById(R.id.tvEmpty);
 
+        findViewById(R.id.btnMoradores).setOnClickListener(v -> {
+            startActivity(new Intent(this, MoradoresActivity.class));
+        });
+
         condominioId = getIntent().getStringExtra("condominioId");
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -203,6 +207,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                 return;
             }
 
+
             Intent intent = new Intent(this, HistoricoActivity.class);
             intent.putExtra("condominioId", condominioId);
             startActivity(intent);
@@ -212,27 +217,31 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private void configurarMenu() {
         tvMenu.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(this, tvMenu);
+
             popupMenu.getMenu().add("Perfil");
+            popupMenu.getMenu().add("Novos Moradores"); // 👈 nouvo bouton an
             popupMenu.getMenu().add("Sair");
 
             popupMenu.setOnMenuItemClickListener(item -> {
-                String title = item.getTitle().toString();
 
-                if (title.equals("Perfil")) {
-                    Toast.makeText(this, "Perfil em breve", Toast.LENGTH_SHORT).show();
-                    return true;
+                String titulo = item.getTitle().toString();
+
+                if (titulo.equals("Perfil")) {
+                    // TODO: ouvrir profil si ou vle
                 }
 
-                if (title.equals("Sair")) {
-                    FirebaseAuth.getInstance().signOut();
-                    Intent intent = new Intent(this, LoginActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                else if (titulo.equals("Novos Moradores")) {
+                    Intent intent = new Intent(this, UnidadesConviteActivity.class);
                     startActivity(intent);
-                    finish();
-                    return true;
                 }
 
-                return false;
+                else if (titulo.equals("Sair")) {
+                    FirebaseAuth.getInstance().signOut();
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                }
+
+                return true;
             });
 
             popupMenu.show();

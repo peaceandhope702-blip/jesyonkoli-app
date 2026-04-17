@@ -12,8 +12,10 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.data.model.UnitModel;
 
@@ -33,16 +35,13 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_unit, parent, false);
-
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-
         UnitModel unit = lista.get(position);
 
         holder.tvUnitId.setText("ID: " + safe(unit.getUnitId(), "--"));
@@ -64,7 +63,6 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
         String finalStatus = status;
 
         holder.btnToggleUnitStatus.setOnClickListener(v -> {
-
             if (holder.getAdapterPosition() == RecyclerView.NO_POSITION) return;
 
             String novoStatus = finalStatus.equalsIgnoreCase("ATIVA")
@@ -77,7 +75,6 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
                     .setTitle("Confirmação")
                     .setMessage("Tem certeza que deseja " + acao + " esta unidade?")
                     .setPositiveButton("Confirmar", (dialog, which) -> {
-
                         FirebaseFirestore.getInstance()
                                 .collection("units")
                                 .document(unit.getUnitId())
@@ -112,23 +109,18 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
                                                 Toast.LENGTH_LONG
                                         ).show()
                                 );
-
                     })
                     .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
                     .show();
-
         });
 
         holder.btnGerarConvite.setOnClickListener(v -> {
-
             if (!"ATIVA".equalsIgnoreCase(unit.getStatus())) {
-
                 Toast.makeText(
                         v.getContext(),
                         "A unidade precisa estar ATIVA para gerar convite",
                         Toast.LENGTH_SHORT
                 ).show();
-
                 return;
             }
 
@@ -145,80 +137,108 @@ public class UnitAdapter extends RecyclerView.Adapter<UnitAdapter.ViewHolder> {
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        String codigo = gerarCodigoAleatorio();
-
-        String adminUid = FirebaseAuth.getInstance().getCurrentUser() != null
-                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
-                : null;
-
-        if (adminUid == null) {
-
-            Toast.makeText(
-                    holder.itemView.getContext(),
-                    "Usuário não autenticado",
-                    Toast.LENGTH_LONG
-            ).show();
-
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Toast.makeText(holder.itemView.getContext(), "Usuário não autenticado", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String condominioId = unit.getCondominioId();
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        if (condominioId == null || condominioId.trim().isEmpty()) {
+        // 🔥 1. Chèche role user la
+        db.collection("users").document(uid).get()
+                .addOnSuccessListener(userDoc -> {
 
-            Toast.makeText(
-                    holder.itemView.getContext(),
-                    "Condomínio da unidade não encontrado",
-                    Toast.LENGTH_LONG
-            ).show();
+                    if (!userDoc.exists()) {
+                        Toast.makeText(holder.itemView.getContext(), "Usuário não encontrado", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
-            return;
-        }
+                    String role = userDoc.getString("role");
+                    if (role == null) role = "UNKNOWN";
 
-        Map<String, Object> convite = new HashMap<>();
-
-        convite.put("code", codigo);
-        convite.put("unitId", unit.getUnitId());
-        convite.put("condominioId", condominioId);
-        convite.put("active", true);
-        convite.put("uses", 0);
-        convite.put("maxUses", 1);
-        convite.put("createdAt", FieldValue.serverTimestamp());
-        convite.put("createdBy", adminUid);
-
-        db.collection("invitationCodes")
-                .document(codigo) // 🔥 code = documentId
-                .set(convite)
-                .addOnSuccessListener(documentReference -> {
-
-                    new AlertDialog.Builder(holder.itemView.getContext())
-                            .setTitle("Convite gerado")
-                            .setMessage(
-                                    "Unidade: " + unit.getUnidade()
-                                            + "\n\nCódigo: " + codigo
-                            )
-                            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                            .show();
+                    // 🔥 2. Kreye code ak role la
+                    criarConviteComRole(unit, holder, uid, role);
 
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(
-                                holder.itemView.getContext(),
-                                "Erro ao gerar convite: " + e.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(holder.itemView.getContext(), "Erro ao buscar usuário", Toast.LENGTH_SHORT).show()
                 );
     }
 
-    private String gerarCodigoAleatorio() {
+    private void criarConviteComRole(UnitModel unit, ViewHolder holder, String uid, String role) {
 
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        String codigo = gerarCodigoAleatorio();
+
+        Map<String, Object> convite = new HashMap<>();
+        convite.put("code", codigo);
+        convite.put("unitId", unit.getUnitId());
+        convite.put("condominioId", unit.getCondominioId());
+        convite.put("active", true);
+        convite.put("maxUses", 1);
+        convite.put("uses", 0);
+        convite.put("createdAt", FieldValue.serverTimestamp());
+        convite.put("createdBy", uid);
+        convite.put("createdByRole", role); // 🔥 otomatik
+        convite.put("used", false);
+
+        // 🔥 dezaktive ansyen codes
+        db.collection("invitationCodes")
+                .whereEqualTo("unitId", unit.getUnitId())
+                .whereEqualTo("condominioId", unit.getCondominioId())
+                .whereEqualTo("active", true)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+
+                    WriteBatch batch = db.batch();
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        batch.update(doc.getReference(), "active", false);
+                    }
+
+                    batch.commit().addOnSuccessListener(unused -> {
+
+                        // 🔥 kreye nouvo code
+                        db.collection("invitationCodes")
+                                .document(codigo)
+                                .set(convite)
+                                .addOnSuccessListener(documentReference -> {
+
+                                    new AlertDialog.Builder(holder.itemView.getContext())
+                                            .setTitle("Convite gerado")
+                                            .setMessage(
+                                                    "Unidade: " + unit.getUnidade()
+                                                            + "\n\nCódigo: " + codigo
+                                                            + "\nCriado por: " + role
+                                            )
+                                            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                            .show();
+
+                                })
+                                .addOnFailureListener(e ->
+                                        Toast.makeText(
+                                                holder.itemView.getContext(),
+                                                "Erro ao gerar convite: " + e.getMessage(),
+                                                Toast.LENGTH_LONG
+                                        ).show()
+                                );
+
+                    });
+
+                });
+    }
+
+
+
+
+    private String gerarCodigoAleatorio() {
         String caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         Random random = new Random();
 
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < 6; i++) {
-
             int index = random.nextInt(caracteres.length());
             sb.append(caracteres.charAt(index));
         }
