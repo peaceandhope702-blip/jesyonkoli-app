@@ -1,0 +1,21 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <EditText
+        android:id="@+id/etDescricao"
+        android:hint="Descrição"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/btnSalvar"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="Salvar"
+        android:layout_marginTop="20dp"/>
+
+</LinearLayout>

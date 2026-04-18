@@ -2,6 +2,9 @@ package com.ricardo.jesyonkoli.ui.portaria;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -21,10 +24,16 @@ import java.util.List;
 public class PendentesActivity extends AppCompatActivity {
 
     private RecyclerView recyclerPendentes;
+    private EditText etSearchUnidade;
+
     private String condominioId;
 
     private FirebaseFirestore db;
-    private final List<Encomenda> listaEncomendas = new ArrayList<>();
+
+    // 🔥 2 LIS
+    private final List<Encomenda> listaCompleta = new ArrayList<>();
+    private final List<Encomenda> listaFiltrada = new ArrayList<>();
+
     private EncomendaAdapter adapter;
 
     @Override
@@ -33,12 +42,11 @@ public class PendentesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_pendentes);
 
         ImageView btnBack = findViewById(R.id.btnBack);
-
-        btnBack.setOnClickListener(v -> {
-            finish(); // 🔥 retounen sou ekran anvan an
-        });
+        btnBack.setOnClickListener(v -> finish());
 
         recyclerPendentes = findViewById(R.id.recyclerPendentes);
+        etSearchUnidade = findViewById(R.id.etSearchUnidade); // 🔥 SEARCH
+
         db = FirebaseFirestore.getInstance();
 
         condominioId = getIntent().getStringExtra("condominioId");
@@ -49,7 +57,8 @@ public class PendentesActivity extends AppCompatActivity {
             return;
         }
 
-        adapter = new EncomendaAdapter(listaEncomendas, encomenda -> {
+        adapter = new EncomendaAdapter(listaFiltrada, encomenda -> {
+
             if (encomenda == null || encomenda.getId() == null || encomenda.getId().trim().isEmpty()) {
                 Toast.makeText(PendentesActivity.this,
                         "ID da encomenda não encontrado.",
@@ -59,8 +68,6 @@ public class PendentesActivity extends AppCompatActivity {
 
             Intent intent = new Intent(PendentesActivity.this, DetalheEncomendaActivity.class);
             intent.putExtra("encomendaId", encomenda.getId());
-
-            // NOUVO (pase condominioId)
             intent.putExtra("condominioId", condominioId);
 
             startActivity(intent);
@@ -68,6 +75,20 @@ public class PendentesActivity extends AppCompatActivity {
 
         recyclerPendentes.setLayoutManager(new LinearLayoutManager(this));
         recyclerPendentes.setAdapter(adapter);
+
+        // 🔥 SEARCH LISTENER
+        etSearchUnidade.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filtrar(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
     @Override
@@ -79,20 +100,25 @@ public class PendentesActivity extends AppCompatActivity {
     private void carregarPendentes() {
         db.collection("encomendas")
                 .whereEqualTo("status", "PENDENTE")
-                .whereEqualTo("condominioId", condominioId) // 🔥 SA KI TE MANKE A
+                .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    listaEncomendas.clear();
+
+                    listaCompleta.clear();
 
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         Encomenda encomenda = doc.toObject(Encomenda.class);
                         encomenda.setId(doc.getId());
-                        listaEncomendas.add(encomenda);
+                        listaCompleta.add(encomenda);
                     }
+
+                    // 🔥 RESET FILTRE
+                    listaFiltrada.clear();
+                    listaFiltrada.addAll(listaCompleta);
 
                     adapter.notifyDataSetChanged();
 
-                    if (listaEncomendas.isEmpty()) {
+                    if (listaCompleta.isEmpty()) {
                         Toast.makeText(this, "Nenhuma encomenda pendente.", Toast.LENGTH_SHORT).show();
                     }
                 })
@@ -101,5 +127,26 @@ public class PendentesActivity extends AppCompatActivity {
                         "Erro ao carregar pendentes: " + e.getMessage(),
                         Toast.LENGTH_LONG
                 ).show());
+    }
+
+    // 🔥 FILTRE
+    private void filtrar(String texto) {
+
+        listaFiltrada.clear();
+
+        String search = texto.trim().toLowerCase();
+
+        for (Encomenda e : listaCompleta) {
+
+            String unidade = e.getUnidade() != null
+                    ? e.getUnidade().trim().toLowerCase()
+                    : "";
+
+            if (unidade.contains(search)) {
+                listaFiltrada.add(e);
+            }
+        }
+
+        adapter.notifyDataSetChanged();
     }
 }

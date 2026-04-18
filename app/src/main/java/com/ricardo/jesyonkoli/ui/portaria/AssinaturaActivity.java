@@ -14,6 +14,7 @@ import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.ui.view.SignatureView;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +26,7 @@ public class AssinaturaActivity extends AppCompatActivity {
     private FirebaseFirestore db;
 
     private String encomendaId;
+    private ArrayList<String> listaIds;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,14 +40,9 @@ public class AssinaturaActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         encomendaId = getIntent().getStringExtra("encomendaId");
-
-        if (encomendaId == null) {
-            Toast.makeText(this, "Erro: encomenda não encontrada", Toast.LENGTH_LONG).show();
-            finish();
-        }
+        listaIds = getIntent().getStringArrayListExtra("listaEncomendasIds");
 
         btnLimpar.setOnClickListener(v -> signatureView.clearSignature());
-
         btnConfirmarRetirada.setOnClickListener(v -> confirmarRetirada());
     }
 
@@ -57,8 +54,30 @@ public class AssinaturaActivity extends AppCompatActivity {
         }
 
         Bitmap bitmap = signatureView.getSignatureBitmap();
-
         String assinaturaBase64 = bitmapToBase64(bitmap);
+
+        btnConfirmarRetirada.setEnabled(false);
+
+        // 🔥 GROUP MODE
+        if (listaIds != null && !listaIds.isEmpty()) {
+
+            for (String id : listaIds) {
+                atualizarEncomenda(id, assinaturaBase64);
+            }
+
+            Toast.makeText(this, "Retirada múltipla confirmada", Toast.LENGTH_LONG).show();
+            finish();
+
+        } else if (encomendaId != null) {
+
+            atualizarEncomenda(encomendaId, assinaturaBase64);
+
+            Toast.makeText(this, "Retirada confirmada", Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
+
+    private void atualizarEncomenda(String id, String assinaturaBase64) {
 
         Map<String, Object> update = new HashMap<>();
         update.put("status", "RETIRADA");
@@ -66,15 +85,8 @@ public class AssinaturaActivity extends AppCompatActivity {
         update.put("assinaturaBase64", assinaturaBase64);
 
         db.collection("encomendas")
-                .document(encomendaId)
-                .update(update)
-                .addOnSuccessListener(unused -> {
-                    Toast.makeText(this, "Retirada confirmada", Toast.LENGTH_LONG).show();
-                    finish();
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                );
+                .document(id)
+                .update(update);
     }
 
     private String bitmapToBase64(Bitmap bitmap) {
@@ -83,7 +95,6 @@ public class AssinaturaActivity extends AppCompatActivity {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
 
         byte[] bytes = baos.toByteArray();
-
         return Base64.encodeToString(bytes, Base64.DEFAULT);
     }
 }

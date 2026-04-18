@@ -1,14 +1,16 @@
 package com.ricardo.jesyonkoli.ui.portaria;
 
 import android.content.Intent;
+import android.graphics.Insets;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -30,6 +32,9 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private TextView navPendentes, navNova, navHistorico, tvMenu;
     private TextView tvPendentesCount, tvNovasCount, tvRetiradasCount, tvEmpty, tvTituloDashboard;
 
+    // 🔥 BOUTON RAPID
+    private Button btnNovaEncomendaRapida, btnVerPendentesRapido, btnVerHistoricoRapido, btnMoradores;
+
     private FirebaseFirestore db;
 
     private int totalPendentes = 0;
@@ -45,6 +50,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
+        // TEXTS
         tvTituloDashboard = findViewById(R.id.tvTituloDashboard);
         navPendentes = findViewById(R.id.navPendentes);
         navNova = findViewById(R.id.navNova);
@@ -56,25 +62,43 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         tvRetiradasCount = findViewById(R.id.tvRetiradasCount);
         tvEmpty = findViewById(R.id.tvEmpty);
 
-        findViewById(R.id.btnMoradores).setOnClickListener(v -> {
-            startActivity(new Intent(this, MoradoresActivity.class));
-        });
+        // 🔥 BUTTONS RAPID
+        btnNovaEncomendaRapida = findViewById(R.id.btnNovaEncomendaRapida);
+        btnVerPendentesRapido = findViewById(R.id.btnVerPendentesRapido);
+        btnVerHistoricoRapido = findViewById(R.id.btnVerHistoricoRapido);
+        btnMoradores = findViewById(R.id.btnMoradores);
 
         condominioId = getIntent().getStringExtra("condominioId");
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(0, systemBars.top, 0, systemBars.bottom);
-            return insets;
-        });
-
         configurarTituloCondominio();
         configurarNavegacao();
+        configurarAcoesRapidas();
         configurarMenu();
 
         if (condominioId != null && !condominioId.trim().isEmpty()) {
             carregarEstatisticas();
         }
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.bottomNav), (v, insets) -> {
+
+            Insets systemBars = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).toPlatformInsets();
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                v.setPadding(
+                        v.getPaddingLeft(),
+                        v.getPaddingTop(),
+                        v.getPaddingRight(),
+                        systemBars.bottom   // 🔥 espas otomatik
+                );
+            }
+
+            return insets;
+        });
+
+
     }
 
     @Override
@@ -85,12 +109,10 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         }
     }
 
+    // 🔥 TITRE CONDOMINIO
     private void configurarTituloCondominio() {
-        Log.d(TAG, "=== configurarTituloCondominio INICIO ===");
-        tvTituloDashboard.setText("Carregando...");
 
         if (condominioId != null && !condominioId.trim().isEmpty()) {
-            Log.d(TAG, "condominioId veio pela Intent: " + condominioId);
             carregarNomeCondominio(condominioId);
             return;
         }
@@ -98,144 +120,135 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
         if (currentUser == null) {
-            Log.e(TAG, "currentUser == null");
-            tvTituloDashboard.setText("Olá 👋");
+            tvTituloDashboard.setText("PORTARIA");
             return;
         }
 
         String uid = currentUser.getUid();
-        Log.d(TAG, "UID logado: " + uid);
 
         db.collection("users")
                 .document(uid)
                 .get()
                 .addOnSuccessListener(userDoc -> {
-                    Log.d(TAG, "users/{uid} exists? " + userDoc.exists());
 
                     if (!userDoc.exists()) {
-                        Log.e(TAG, "Documento do usuário não encontrado");
-                        tvTituloDashboard.setText("PORTARIA- ");
+                        tvTituloDashboard.setText("PORTARIA");
                         return;
                     }
 
-                    Log.d(TAG, "Dados do usuário: " + userDoc.getData());
-
                     String condominioIdUser = userDoc.getString("condominioId");
-                    Log.d(TAG, "condominioId no user: " + condominioIdUser);
 
-                    if (condominioIdUser == null || condominioIdUser.trim().isEmpty()) {
-                        Log.e(TAG, "condominioId vazio no user");
-                        tvTituloDashboard.setText("PORTARIA-");
+                    if (condominioIdUser == null) {
+                        tvTituloDashboard.setText("PORTARIA");
                         return;
                     }
 
                     condominioId = condominioIdUser;
                     carregarNomeCondominio(condominioId);
                     carregarEstatisticas();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Erro ao buscar usuário", e);
-                    tvTituloDashboard.setText("PORTARIA-");
                 });
     }
+
     private void carregarNomeCondominio(String condominioId) {
-        Log.d(TAG, "Buscando condomínio: " + condominioId);
 
         db.collection("condominios")
                 .document(condominioId)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    Log.d(TAG, "condominio exists? " + doc.exists());
-
-                    if (!doc.exists()) {
-                        Log.e(TAG, "Documento do condomínio não existe");
-                        tvTituloDashboard.setText("PORTARIA-");
-                        return;
-                    }
-
-                    Log.d(TAG, "Dados do condomínio: " + doc.getData());
 
                     String nome = doc.getString("nome");
-                    Log.d(TAG, "nome lido: " + nome);
 
-                    if (nome == null || nome.trim().isEmpty()) {
+                    if (nome == null || nome.isEmpty()) {
                         nome = doc.getString("nomeCondominio");
-                        Log.d(TAG, "nomeCondominio fallback: " + nome);
                     }
 
-                    if (nome != null && !nome.trim().isEmpty()) {
-                        String titulo = "PORTARIA- " + nome ;
-                        tvTituloDashboard.setText(titulo);
-                        Log.d(TAG, "Título final aplicado: " + titulo);
+                    if (nome != null) {
+                        tvTituloDashboard.setText("PORTARIA - " + nome);
                     } else {
-                        Log.e(TAG, "Nenhum nome encontrado no documento");
-                        tvTituloDashboard.setText("PORTARIA- ");
+                        tvTituloDashboard.setText("PORTARIA");
                     }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Erro ao buscar condomínio", e);
-                    tvTituloDashboard.setText("PORTARIA- ");
                 });
     }
 
+    // 🔥 NAVIGATION MENU BAS
     private void configurarNavegacao() {
-        navPendentes.setOnClickListener(v -> {
-            if (condominioId == null || condominioId.trim().isEmpty()) {
-                Toast.makeText(this, "Condomínio não carregado ainda", Toast.LENGTH_SHORT).show();
-                return;
-            }
 
-            Intent intent = new Intent(this, PendentesActivity.class);
-            intent.putExtra("condominioId", condominioId);
-            startActivity(intent);
-        });
+        navPendentes.setOnClickListener(v -> abrirPendentes());
 
-        navNova.setOnClickListener(v -> {
-            if (condominioId == null || condominioId.trim().isEmpty()) {
-                Toast.makeText(this, "Condomínio não carregado ainda", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        navNova.setOnClickListener(v -> abrirNova());
 
-            Intent intent = new Intent(this, NovaEncomendaActivity.class);
-            intent.putExtra("condominioId", condominioId);
-            startActivity(intent);
-        });
-
-        navHistorico.setOnClickListener(v -> {
-            if (condominioId == null || condominioId.trim().isEmpty()) {
-                Toast.makeText(this, "Condomínio não carregado ainda", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-
-            Intent intent = new Intent(this, HistoricoActivity.class);
-            intent.putExtra("condominioId", condominioId);
-            startActivity(intent);
-        });
+        navHistorico.setOnClickListener(v -> abrirHistorico());
     }
 
+    // 🔥 ACTION RAPIDE
+    private void configurarAcoesRapidas() {
+
+        btnNovaEncomendaRapida.setOnClickListener(v -> abrirNova());
+
+        btnVerPendentesRapido.setOnClickListener(v -> abrirPendentes());
+
+        btnVerHistoricoRapido.setOnClickListener(v -> abrirHistorico());
+
+        btnMoradores.setOnClickListener(v ->
+                startActivity(new Intent(this, MoradoresActivity.class))
+        );
+    }
+
+    // 🔥 OUVERTURES CENTRALISÉES
+    private void abrirPendentes() {
+
+        if (!validarCondominio()) return;
+
+        Intent intent = new Intent(this, PendentesActivity.class);
+        intent.putExtra("condominioId", condominioId);
+        startActivity(intent);
+    }
+
+    private void abrirNova() {
+
+        if (!validarCondominio()) return;
+
+        Intent intent = new Intent(this, NovaEncomendaActivity.class);
+        intent.putExtra("condominioId", condominioId);
+        startActivity(intent);
+    }
+
+    private void abrirHistorico() {
+
+        if (!validarCondominio()) return;
+
+        Intent intent = new Intent(this, HistoricoActivity.class);
+        intent.putExtra("condominioId", condominioId);
+        startActivity(intent);
+    }
+
+    private boolean validarCondominio() {
+        if (condominioId == null || condominioId.trim().isEmpty()) {
+            Toast.makeText(this, "Condomínio não carregado ainda", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+    // 🔥 MENU 3 DOTS
     private void configurarMenu() {
+
         tvMenu.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(this, tvMenu);
 
             popupMenu.getMenu().add("Perfil");
-            popupMenu.getMenu().add("Novos Moradores"); // 👈 nouvo bouton an
+            popupMenu.getMenu().add("Novos Moradores");
             popupMenu.getMenu().add("Sair");
 
             popupMenu.setOnMenuItemClickListener(item -> {
 
                 String titulo = item.getTitle().toString();
 
-                if (titulo.equals("Perfil")) {
-                    // TODO: ouvrir profil si ou vle
+                if (titulo.equals("Novos Moradores")) {
+                    startActivity(new Intent(this, UnidadesConviteActivity.class));
                 }
 
-                else if (titulo.equals("Novos Moradores")) {
-                    Intent intent = new Intent(this, UnidadesConviteActivity.class);
-                    startActivity(intent);
-                }
-
-                else if (titulo.equals("Sair")) {
+                if (titulo.equals("Sair")) {
                     FirebaseAuth.getInstance().signOut();
                     startActivity(new Intent(this, LoginActivity.class));
                     finish();
@@ -248,12 +261,8 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         });
     }
 
+    // 🔥 STATISTIQUES
     private void carregarEstatisticas() {
-        if (condominioId == null || condominioId.trim().isEmpty()) {
-            Log.w(TAG, "carregarEstatisticas chamado sem condominioId");
-            return;
-        }
-
         carregarPendentes();
         carregarRetiradas();
         carregarNovasHoje();
@@ -268,12 +277,6 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                     totalPendentes = q.size();
                     tvPendentesCount.setText(String.valueOf(totalPendentes));
                     atualizarMensagem();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Erro ao carregar pendentes", e);
-                    totalPendentes = 0;
-                    tvPendentesCount.setText("0");
-                    atualizarMensagem();
                 });
     }
 
@@ -286,34 +289,29 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                     totalRetiradas = q.size();
                     tvRetiradasCount.setText(String.valueOf(totalRetiradas));
                     atualizarMensagem();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Erro ao carregar retiradas", e);
-                    totalRetiradas = 0;
-                    tvRetiradasCount.setText("0");
-                    atualizarMensagem();
                 });
     }
 
     private void carregarNovasHoje() {
+
         db.collection("encomendas")
                 .whereEqualTo("condominioId", condominioId)
                 .get()
                 .addOnSuccessListener(query -> {
+
                     int countHoje = 0;
 
-                    Calendar hojeInicio = Calendar.getInstance();
-                    hojeInicio.set(Calendar.HOUR_OF_DAY, 0);
-                    hojeInicio.set(Calendar.MINUTE, 0);
-                    hojeInicio.set(Calendar.SECOND, 0);
-                    hojeInicio.set(Calendar.MILLISECOND, 0);
+                    Calendar cal = Calendar.getInstance();
+                    cal.set(Calendar.HOUR_OF_DAY, 0);
+                    cal.set(Calendar.MINUTE, 0);
+                    cal.set(Calendar.SECOND, 0);
 
-                    Date inicioDoDia = hojeInicio.getTime();
+                    Date inicioDoDia = cal.getTime();
 
                     for (QueryDocumentSnapshot doc : query) {
-                        Timestamp timestamp = doc.getTimestamp("createdAt");
+                        Timestamp ts = doc.getTimestamp("createdAt");
 
-                        if (timestamp != null && timestamp.toDate().compareTo(inicioDoDia) >= 0) {
+                        if (ts != null && ts.toDate().compareTo(inicioDoDia) >= 0) {
                             countHoje++;
                         }
                     }
@@ -321,16 +319,11 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                     totalNovasHoje = countHoje;
                     tvNovasCount.setText(String.valueOf(totalNovasHoje));
                     atualizarMensagem();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Erro ao carregar novas de hoje", e);
-                    totalNovasHoje = 0;
-                    tvNovasCount.setText("0");
-                    atualizarMensagem();
                 });
     }
 
     private void atualizarMensagem() {
+
         if (totalPendentes > 0) {
             tvEmpty.setText("Você tem " + totalPendentes + " encomenda(s) pendente(s).");
         } else if (totalNovasHoje > 0) {

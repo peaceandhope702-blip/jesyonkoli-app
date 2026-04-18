@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -25,7 +26,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
         <!-- TIT -->
         <TextView
@@ -38,6 +39,16 @@
             android:textStyle="bold" />
 
     </RelativeLayout>
+
+
+    <EditText
+        android:id="@+id/etSearchUnidade"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="🔍 Buscar por unidade (ex: A101)"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:layout_margin="12dp"/>
 
 
     <!-- CONTENU -->

@@ -1,66 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="#F5F7FA">
 
+    <!-- HEADER -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="100dp"
         android:background="#1976D2"
-        android:fitsSystemWindows="true"
-        android:paddingTop="24dp"
-        android:paddingBottom="12dp"
+        android:paddingTop="32dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
-        <!-- ICON BACK -->
+
         <ImageView
             android:id="@+id/btnBack"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_centerVertical="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="9dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
             android:tint="#FFFFFF" />
 
-        <!-- TIT -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:text="Histórico de Encomendas"
             android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_centerInParent="true"/>
 
     </RelativeLayout>
 
-
+    <!-- SEARCH -->
+    <EditText
+        android:id="@+id/etSearchGlobal"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-
-    <!-- MESSAGE SI VID -->
-    <TextView
-        android:id="@+id/tvEmptyHistorico"
+        android:layout_height="50dp"
+        android:hint="🔍 Buscar por unidade, morador ou descrição"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:layout_margin="12dp"/>
+    <Button
+        android:id="@+id/btnExportPdf"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Nenhuma encomenda retirada."
-        android:textSize="16sp"
-        android:visibility="gone"
-        android:gravity="center"
-        android:layout_marginTop="20dp"/>
+        android:layout_height="50dp"
+        android:text="📄 Exporter PDF"
+        android:layout_margin="12dp"/>
 
-    <!-- LISTE -->
+    <!-- LIST -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistorico"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:listitem="@layout/item_encomenda_portaria" />
+        android:layout_height="match_parent"/>
 
 </LinearLayout>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -23,7 +24,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -170,17 +171,34 @@
                 android:scaleType="fitCenter" />
 
             <!-- BOTÃO -->
+            <!-- 🔵 Retirar somente este -->
             <Button
-                android:id="@+id/btnRegistrarRetirada"
+                android:id="@+id/btnRetirarSomente"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                android:layout_marginBottom="27dp"
-                android:text="Registrar Retirada"
+                android:layout_marginBottom="8dp"
+                android:text="Retirar somente este"
                 android:textAllCaps="false"
                 android:textStyle="bold" />
 
+            <!-- 🟢 Retirar todos -->
+            <Button
+                android:id="@+id/btnRetirarTodos"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="16dp"
+                android:text="Retirar todos"
+                android:textAllCaps="false"
+                android:textStyle="bold" />
 
-
+            <!-- ✏️ Edit -->
+            <Button
+                android:id="@+id/btnEditar"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="Editar Encomenda"
+                android:textAllCaps="false"
+                android:textStyle="bold"/>
 
 
           </LinearLayout>
