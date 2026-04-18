@@ -1,8 +1,10 @@
 package com.ricardo.jesyonkoli.ui.portaria;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Base64;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -17,6 +19,10 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
+
 
 public class AssinaturaActivity extends AppCompatActivity {
 
@@ -32,6 +38,24 @@ public class AssinaturaActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_assinatura);
+
+
+        @SuppressLint("MissingInflatedId") View root = findViewById(R.id.rootLayout);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            v.setPadding(
+                    v.getPaddingLeft(),
+                    v.getPaddingTop(),
+                    v.getPaddingRight(),
+                    systemBars.bottom + 16 // ajoute espas otomatik anba
+            );
+
+            return insets;
+        });
+
+
 
         signatureView = findViewById(R.id.signatureView);
         btnLimpar = findViewById(R.id.btnLimpar);

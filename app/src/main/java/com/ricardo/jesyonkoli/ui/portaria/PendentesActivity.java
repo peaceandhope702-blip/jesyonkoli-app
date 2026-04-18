@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -20,6 +21,10 @@ import com.ricardo.jesyonkoli.data.model.Encomenda;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
 
 public class PendentesActivity extends AppCompatActivity {
 
@@ -43,6 +48,21 @@ public class PendentesActivity extends AppCompatActivity {
 
         ImageView btnBack = findViewById(R.id.btnBack);
         btnBack.setOnClickListener(v -> finish());
+
+        View root = findViewById(R.id.main);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            v.setPadding(
+                    v.getPaddingLeft(),
+                    v.getPaddingTop(),
+                    v.getPaddingRight(),
+                    systemBars.bottom
+            );
+
+            return insets;
+        });
 
         recyclerPendentes = findViewById(R.id.recyclerPendentes);
         etSearchUnidade = findViewById(R.id.etSearchUnidade); // 🔥 SEARCH

@@ -2,22 +2,29 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="#F5F7FA">
 
+    <!-- FAKE STATUS BAR / ANTÈT BLAN -->
+    <View
+        android:id="@+id/statusBarSpacer"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:background="#FFFFFF" />
 
+    <!-- HEADER -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1976D2"
-        android:fitsSystemWindows="true"
-        android:paddingTop="24dp"
+        android:background="#0D47A1"
+        android:paddingTop="28dp"
         android:paddingBottom="12dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
-        <!-- ICON BACK -->
         <ImageView
             android:id="@+id/btnBack"
             android:layout_width="40dp"
@@ -28,51 +35,59 @@
             android:src="@android:drawable/ic_menu_revert"
             app:tint="#FFFFFF" />
 
-        <!-- TIT -->
         <TextView
+            android:id="@+id/tvTitlePendentes"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Encomendas Pendentes"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
-
     </RelativeLayout>
 
-
+    <!-- SEARCH -->
     <EditText
         android:id="@+id/etSearchUnidade"
         android:layout_width="match_parent"
         android:layout_height="50dp"
+        android:layout_margin="12dp"
+        android:background="#FFFFFF"
         android:hint="🔍 Buscar por unidade (ex: A101)"
         android:padding="12dp"
-        android:background="#FFFFFF"
-        android:layout_margin="12dp"/>
+        android:textColor="#222222"
+        android:textColorHint="#888888" />
 
-
-    <!-- CONTENU -->
+    <!-- CONTENT -->
     <LinearLayout
+        android:id="@+id/contentArea"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="40dp">
 
         <TextView
             android:id="@+id/tvEmptyPendentes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Nenhuma encomenda pendente."
-            android:textSize="16sp"
+            android:layout_marginBottom="12dp"
             android:gravity="center"
-            android:visibility="gone"
-            android:layout_marginBottom="12dp"/>
+            android:text="Nenhuma encomenda pendente."
+            android:textColor="#666666"
+            android:textSize="16sp"
+            android:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerPendentes"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:listitem="@layout/item_encomenda_portaria"/>
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            tools:listitem="@layout/item_encomenda_portaria" />
 
     </LinearLayout>
 

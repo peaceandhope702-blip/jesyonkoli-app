@@ -5,6 +5,7 @@ import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -47,6 +48,26 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_portaria_dashboard);
+
+        View root = findViewById(R.id.main);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets systemBars = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).toPlatformInsets();
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                v.setPadding(
+                        v.getPaddingLeft(),
+                        v.getPaddingTop(),
+                        v.getPaddingRight(),
+                        systemBars.bottom
+                );
+            }
+
+            return insets;
+        });
 
         db = FirebaseFirestore.getInstance();
 

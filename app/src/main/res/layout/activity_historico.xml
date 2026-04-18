@@ -1,40 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#F5F7FA">
 
+
+    <!-- FAKE STATUS BAR / ANTÈT BLAN -->
+    <View
+        android:id="@+id/statusBarSpacer"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:background="#FFFFFF" />
     <!-- HEADER -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:background="#1976D2"
-        android:paddingTop="32dp"
+        android:layout_height="wrap_content"
+        android:minHeight="90dp"
+        android:background="#0D47A1"
+        android:paddingTop="28dp"
+        android:paddingBottom="12dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
-
 
         <ImageView
             android:id="@+id/btnBack"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_alignParentTop="true"
-            android:layout_marginTop="9dp"
+            android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
             android:tint="#FFFFFF" />
 
         <TextView
+            android:id="@+id/tvTitleHistorico"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Histórico de Encomendas"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_centerInParent="true"/>
-
+            android:textStyle="bold" />
     </RelativeLayout>
 
     <!-- SEARCH -->
@@ -42,21 +52,34 @@
         android:id="@+id/etSearchGlobal"
         android:layout_width="match_parent"
         android:layout_height="50dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="12dp"
+        android:background="#FFFFFF"
         android:hint="🔍 Buscar por unidade, morador ou descrição"
         android:padding="12dp"
-        android:background="#FFFFFF"
-        android:layout_margin="12dp"/>
+        android:textColor="#222222"
+        android:textColorHint="#888888" />
+
+    <!-- EXPORT BUTTON -->
     <Button
         android:id="@+id/btnExportPdf"
         android:layout_width="match_parent"
         android:layout_height="50dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:text="📄 Exporter PDF"
-        android:layout_margin="12dp"/>
+        android:textAllCaps="false"
+        android:textStyle="bold" />
 
     <!-- LIST -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistorico"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingBottom="40dp" />
 
 </LinearLayout>
