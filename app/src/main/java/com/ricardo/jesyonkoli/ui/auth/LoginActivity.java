@@ -41,6 +41,7 @@ public class LoginActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
+
         if (email.isEmpty()) {
             etEmail.setError("Informe o e-mail.");
             etEmail.requestFocus();
@@ -58,6 +59,7 @@ public class LoginActivity extends AppCompatActivity {
             etPassword.requestFocus();
             return;
         }
+
 
         auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(authResult -> {

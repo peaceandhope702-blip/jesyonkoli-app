@@ -3,7 +3,10 @@ package com.ricardo.jesyonkoli.ui.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +28,10 @@ public class RegisterActivity extends AppCompatActivity {
     private FirebaseAuth auth;
 
     private EditText etNome, etEmail, etPassword, etInvitationCode;
+    private Button btnGoRegister;
+    private ProgressBar progressBar;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,13 +41,20 @@ public class RegisterActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
+        // 🔹 Inputs
         etNome = findViewById(R.id.etNome);
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         etInvitationCode = findViewById(R.id.etInvitationCode);
 
-        findViewById(R.id.btnGoRegister).setOnClickListener(v -> register());
+        // 🔹 Bouton + ProgressBar (TOUJOU ANVAN listener)
+        btnGoRegister = findViewById(R.id.btnGoRegister);
+        progressBar = findViewById(R.id.progressBar);
 
+        // 🔹 Click register
+        btnGoRegister.setOnClickListener(v -> register());
+
+        // 🔹 Bouton pou login
         findViewById(R.id.btnLogin).setOnClickListener(v -> {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
@@ -136,22 +150,29 @@ public class RegisterActivity extends AppCompatActivity {
     private void createUser(String nome, String email, String pass,
                             String unitId, String unidade, String condominioId, DocumentReference codeRef) {
 
+        btnGoRegister.setEnabled(false);
+        progressBar.setVisibility(View.VISIBLE);
+
         auth.createUserWithEmailAndPassword(email, pass)
                 .addOnSuccessListener(result -> {
 
                     if (result.getUser() == null) {
                         show("Erro ao criar conta");
+
+                        btnGoRegister.setEnabled(true);
+                        progressBar.setVisibility(View.GONE);
                         return;
                     }
 
                     String uid = result.getUser().getUid();
 
+                    // 🔥 MAP USER (SA TE MANKE)
                     Map<String, Object> user = new HashMap<>();
                     user.put("nome", nome);
                     user.put("email", email);
                     user.put("role", "MORADOR");
-                    user.put("unitId", unitId);         // backend
-                    user.put("unidade", unidade);       // affichage
+                    user.put("unitId", unitId);
+                    user.put("unidade", unidade);
                     user.put("condominioId", condominioId);
                     user.put("status", "ATIVO");
                     user.put("createdAt", FieldValue.serverTimestamp());
@@ -161,23 +182,41 @@ public class RegisterActivity extends AppCompatActivity {
                             .set(user)
                             .addOnSuccessListener(unused ->
                                     inativarMoradoresAntigos(uid, condominioId, unitId, () -> {
+
                                         codeRef.update(
                                                         "uses", FieldValue.increment(1),
                                                         "used", true
                                                 )
                                                 .addOnSuccessListener(aVoid -> {
                                                     show("Conta criada com sucesso!");
+
+                                                    progressBar.setVisibility(View.GONE);
+
                                                     RoleGate.routeUser(this);
                                                 })
                                                 .addOnFailureListener(e -> {
                                                     show("Conta criada, mas erro ao atualizar uso do código");
+
+                                                    btnGoRegister.setEnabled(true);
+                                                    progressBar.setVisibility(View.GONE);
+
                                                     RoleGate.routeUser(this);
                                                 });
                                     })
                             )
-                            .addOnFailureListener(e -> show("Erro ao salvar usuário: " + e.getMessage()));
+                            .addOnFailureListener(e -> {
+                                show("Erro ao salvar usuário: " + e.getMessage());
+
+                                btnGoRegister.setEnabled(true);
+                                progressBar.setVisibility(View.GONE);
+                            });
                 })
-                .addOnFailureListener(e -> show("Erro ao criar conta: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    show("Erro ao criar conta: " + e.getMessage());
+
+                    btnGoRegister.setEnabled(true);
+                    progressBar.setVisibility(View.GONE);
+                });
     }
 
     private void inativarMoradoresAntigos(String newUid, String condominioId, String unitId, Runnable onDone) {

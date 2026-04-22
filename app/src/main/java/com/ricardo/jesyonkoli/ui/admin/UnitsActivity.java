@@ -2,6 +2,7 @@ package com.ricardo.jesyonkoli.ui.admin;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -10,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.database.collection.BuildConfig;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -118,9 +120,12 @@ public class UnitsActivity extends AppCompatActivity {
         unit.put("unidade", unidadeDigitada);
         unit.put("status", "ATIVA");
         unit.put("createdAt", FieldValue.serverTimestamp());
-
+        if (BuildConfig.DEBUG) {
+            Log.d("TEST_UNIT", "condominioId: " + condominioId);
+        }
         // NOUVO
         unit.put("condominioId", condominioId);
+
 
         db.collection("units")
                 .document(unitId)

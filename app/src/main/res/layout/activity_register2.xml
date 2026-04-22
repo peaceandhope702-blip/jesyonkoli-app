@@ -54,6 +54,12 @@
         android:layout_marginBottom="18dp"
         android:background="@android:drawable/edit_text"
         android:padding="12dp" />
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/btnGoRegister"
@@ -75,5 +81,6 @@
         android:textStyle="bold"
         android:backgroundTint="#E0E0E0"
         android:textColor="#1F1F1F" />
+
 
 </LinearLayout>
