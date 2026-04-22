@@ -211,7 +211,8 @@ public class UnidadesConviteActivity extends AppCompatActivity {
                     data.put("createdByRole", "PORTARIA");
 
                     db.collection("invitationCodes")
-                            .add(data)
+                            .document(code)
+                            .set(data)
                             .addOnSuccessListener(docRef -> {
 
                                 copyToClipboard(code);

@@ -37,11 +37,17 @@
 
         <activity android:name=".ui.admin.UnitsActivity" />
 
-        <activity android:name=".ui.portaria.MoradoresActivity"/>
+        <activity
+            android:name=".ui.portaria.MoradoresActivity"
+            android:exported="false"/>
 
-        <activity android:name=".ui.morador.MoradorDetalheEncomendaActivity" />
+        <activity
+            android:name=".ui.morador.MoradorDetalheEncomendaActivity"
+            android:exported="false"/>
 
-        <activity android:name=".ui.portaria.UnidadesConviteActivity"/>
+        <activity
+            android:name=".ui.portaria.UnidadesConviteActivity"
+            android:exported="false" />
 
         <activity
             android:name=".SplashActivity"
@@ -51,13 +57,8 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-
-
-
-
-
         </activity>
+
         <activity
             android:name=".ui.admin.AdminPanelActivity"
             android:exported="false" />

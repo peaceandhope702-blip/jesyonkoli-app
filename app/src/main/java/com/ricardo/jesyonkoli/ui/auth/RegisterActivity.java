@@ -124,6 +124,7 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> show("Erro ao verificar código: " + e.getMessage()));
     }
 
+
     private void verifyUnit(String nome, String email, String pass,
                             String unitId, String condominioId, DocumentReference codeRef) {
 
@@ -184,8 +185,9 @@ public class RegisterActivity extends AppCompatActivity {
                                     inativarMoradoresAntigos(uid, condominioId, unitId, () -> {
 
                                         codeRef.update(
-                                                        "uses", FieldValue.increment(1),
-                                                        "used", true
+                                                "uses", FieldValue.increment(1),
+                                                "used", true,
+                                                "active", false
                                                 )
                                                 .addOnSuccessListener(aVoid -> {
                                                     show("Conta criada com sucesso!");
