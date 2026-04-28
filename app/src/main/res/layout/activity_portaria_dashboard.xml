@@ -10,8 +10,8 @@
     <View
         android:id="@+id/statusBarSpacer"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:background="#FFFFFF" />
+        android:layout_height="25dp"
+        android:background="#0D47A1" />
 
     <!-- HEADER -->
     <RelativeLayout
