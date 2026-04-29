@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_adicionar_morador"
+        android:title="Adicionar Morador"
+        android:icon="@drawable/ic_add" />
+
+    <item
+        android:id="@+id/menu_configuracoes"
+        android:title="Configurações"
+        android:icon="@drawable/ic_settings" />
+
+    <item
+        android:id="@+id/menu_ajuda"
+        android:title="Ajuda / Suporte"
+        android:icon="@drawable/ic_help" />
+
+    <item
+        android:id="@+id/menu_sair"
+        android:title="Sair"
+        android:icon="@drawable/ic_logout" />
+
+</menu>

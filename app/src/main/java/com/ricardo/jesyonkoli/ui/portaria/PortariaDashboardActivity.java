@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +16,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -23,6 +26,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.ricardo.jesyonkoli.R;
 import com.ricardo.jesyonkoli.ui.auth.LoginActivity;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -30,8 +35,8 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
     private static final String TAG = "PORTARIA_DASH";
 
-    private TextView navPendentes, navNova, navHistorico, tvMenu;
-    private TextView tvPendentesCount, tvNovasCount, tvRetiradasCount, tvEmpty, tvTituloDashboard;
+    private TextView  tvMenu;
+    private TextView tvPendentesCount, tvNovasCount, tvRetiradasCount,tvAlertTitle,  tvTituloDashboard;
 
     // 🔥 BOUTON RAPID
     private Button btnNovaEncomendaRapida, btnVerPendentesRapido, btnVerHistoricoRapido, btnMoradores;
@@ -73,15 +78,13 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
         // TEXTS
         tvTituloDashboard = findViewById(R.id.tvTituloDashboard);
-        navPendentes = findViewById(R.id.navPendentes);
-        navNova = findViewById(R.id.navNova);
-        navHistorico = findViewById(R.id.navHistorico);
+
         tvMenu = findViewById(R.id.tvMenu);
 
         tvPendentesCount = findViewById(R.id.tvPendentesCount);
         tvNovasCount = findViewById(R.id.tvNovasCount);
         tvRetiradasCount = findViewById(R.id.tvRetiradasCount);
-        tvEmpty = findViewById(R.id.tvEmpty);
+        tvAlertTitle = findViewById(R.id.tvAlertTitle);
 
         // 🔥 BUTTONS RAPID
         btnNovaEncomendaRapida = findViewById(R.id.btnNovaEncomendaRapida);
@@ -99,27 +102,6 @@ public class PortariaDashboardActivity extends AppCompatActivity {
         if (condominioId != null && !condominioId.trim().isEmpty()) {
             carregarEstatisticas();
         }
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.bottomNav), (v, insets) -> {
-
-            Insets systemBars = null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).toPlatformInsets();
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                v.setPadding(
-                        v.getPaddingLeft(),
-                        v.getPaddingTop(),
-                        v.getPaddingRight(),
-                        systemBars.bottom   // 🔥 espas otomatik
-                );
-            }
-
-            return insets;
-        });
-
-
     }
 
     @Override
@@ -184,7 +166,7 @@ public class PortariaDashboardActivity extends AppCompatActivity {
                     }
 
                     if (nome != null) {
-                        tvTituloDashboard.setText("PORTARIA - " + nome);
+                        tvTituloDashboard.setText("Condomínio- " + nome);
                     } else {
                         tvTituloDashboard.setText("PORTARIA");
                     }
@@ -194,11 +176,9 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     // 🔥 NAVIGATION MENU BAS
     private void configurarNavegacao() {
 
-        navPendentes.setOnClickListener(v -> abrirPendentes());
+        FloatingActionButton fab = findViewById(R.id.fabNova);
+        fab.setOnClickListener(v -> abrirNova());
 
-        navNova.setOnClickListener(v -> abrirNova());
-
-        navHistorico.setOnClickListener(v -> abrirHistorico());
     }
 
     // 🔥 ACTION RAPIDE
@@ -255,30 +235,41 @@ public class PortariaDashboardActivity extends AppCompatActivity {
     private void configurarMenu() {
 
         tvMenu.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(this, tvMenu);
 
-            popupMenu.getMenu().add("Perfil");
-            popupMenu.getMenu().add("Novos Moradores");
-            popupMenu.getMenu().add("Sair");
+            View view = getLayoutInflater().inflate(R.layout.bottom_sheet_menu, null);
 
-            popupMenu.setOnMenuItemClickListener(item -> {
+            BottomSheetDialog dialog = new BottomSheetDialog(this);
+            dialog.setContentView(view);
 
-                String titulo = item.getTitle().toString();
+            // Bouton yo
+            LinearLayout btnAdicionar = view.findViewById(R.id.btnAdicionar);
+            LinearLayout btnConfig = view.findViewById(R.id.btnConfig);
+            LinearLayout btnAjuda = view.findViewById(R.id.btnAjuda);
+            LinearLayout btnSair = view.findViewById(R.id.btnSair);
 
-                if (titulo.equals("Novos Moradores")) {
-                    startActivity(new Intent(this, UnidadesConviteActivity.class));
-                }
-
-                if (titulo.equals("Sair")) {
-                    FirebaseAuth.getInstance().signOut();
-                    startActivity(new Intent(this, LoginActivity.class));
-                    finish();
-                }
-
-                return true;
+            btnAdicionar.setOnClickListener(v1 -> {
+                startActivity(new Intent(this, UnidadesConviteActivity.class));
+                dialog.dismiss();
             });
 
-            popupMenu.show();
+            btnConfig.setOnClickListener(v1 -> {
+                // TODO abrir configurações
+                dialog.dismiss();
+            });
+
+            btnAjuda.setOnClickListener(v1 -> {
+                // TODO abrir suporte
+                dialog.dismiss();
+            });
+
+            btnSair.setOnClickListener(v1 -> {
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+                dialog.dismiss();
+            });
+
+            dialog.show();
         });
     }
 
@@ -345,14 +336,26 @@ public class PortariaDashboardActivity extends AppCompatActivity {
 
     private void atualizarMensagem() {
 
+        View alert = findViewById(R.id.alertContainer);
+
         if (totalPendentes > 0) {
-            tvEmpty.setText("Você tem " + totalPendentes + " encomenda(s) pendente(s).");
+
+            alert.setVisibility(View.VISIBLE);
+            tvAlertTitle.setText(totalPendentes + " encomendas aguardando retirada");
+
         } else if (totalNovasHoje > 0) {
-            tvEmpty.setText("Hoje chegaram " + totalNovasHoje + " nova(s) encomenda(s).");
+
+            alert.setVisibility(View.VISIBLE);
+            tvAlertTitle.setText("Hoje chegaram " + totalNovasHoje + " encomendas");
+
         } else if (totalRetiradas > 0) {
-            tvEmpty.setText(totalRetiradas + " encomenda(s) já foram retiradas.");
+
+            alert.setVisibility(View.VISIBLE);
+            tvAlertTitle.setText(totalRetiradas + " encomendas já foram retiradas");
+
         } else {
-            tvEmpty.setText("Nenhuma movimentação no momento.");
+
+            alert.setVisibility(View.GONE); // 🔥 kle a
         }
     }
 }
