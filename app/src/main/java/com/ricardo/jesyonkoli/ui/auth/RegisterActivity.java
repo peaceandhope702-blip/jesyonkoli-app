@@ -7,10 +7,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar; // ✅ Snackbar
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -31,8 +31,6 @@ public class RegisterActivity extends AppCompatActivity {
     private Button btnGoRegister;
     private ProgressBar progressBar;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,20 +39,16 @@ public class RegisterActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // 🔹 Inputs
         etNome = findViewById(R.id.etNome);
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         etInvitationCode = findViewById(R.id.etInvitationCode);
 
-        // 🔹 Bouton + ProgressBar (TOUJOU ANVAN listener)
         btnGoRegister = findViewById(R.id.btnGoRegister);
         progressBar = findViewById(R.id.progressBar);
 
-        // 🔹 Click register
         btnGoRegister.setOnClickListener(v -> register());
 
-        // 🔹 Bouton pou login
         findViewById(R.id.btnLogin).setOnClickListener(v -> {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
@@ -124,7 +118,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> show("Erro ao verificar código: " + e.getMessage()));
     }
 
-
     private void verifyUnit(String nome, String email, String pass,
                             String unitId, String condominioId, DocumentReference codeRef) {
 
@@ -167,7 +160,6 @@ public class RegisterActivity extends AppCompatActivity {
 
                     String uid = result.getUser().getUid();
 
-                    // 🔥 MAP USER (SA TE MANKE)
                     Map<String, Object> user = new HashMap<>();
                     user.put("nome", nome);
                     user.put("email", email);
@@ -185,15 +177,13 @@ public class RegisterActivity extends AppCompatActivity {
                                     inativarMoradoresAntigos(uid, condominioId, unitId, () -> {
 
                                         codeRef.update(
-                                                "uses", FieldValue.increment(1),
-                                                "used", true,
-                                                "active", false
+                                                        "uses", FieldValue.increment(1),
+                                                        "used", true,
+                                                        "active", false
                                                 )
                                                 .addOnSuccessListener(aVoid -> {
                                                     show("Conta criada com sucesso!");
-
                                                     progressBar.setVisibility(View.GONE);
-
                                                     RoleGate.routeUser(this);
                                                 })
                                                 .addOnFailureListener(e -> {
@@ -201,7 +191,6 @@ public class RegisterActivity extends AppCompatActivity {
 
                                                     btnGoRegister.setEnabled(true);
                                                     progressBar.setVisibility(View.GONE);
-
                                                     RoleGate.routeUser(this);
                                                 });
                                     })
@@ -246,7 +235,15 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> show("Erro ao buscar moradores antigos: " + e.getMessage()));
     }
 
+    // ✅ Snackbar ak anchor (SOLISYON PRO)
     private void show(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+        View root = findViewById(android.R.id.content);
+
+        Snackbar snackbar = Snackbar.make(root, msg, Snackbar.LENGTH_LONG);
+
+        // ⭐ li ap parèt anlè bouton an, pa kole ak klavye
+        snackbar.setAnchorView(btnGoRegister);
+
+        snackbar.show();
     }
 }

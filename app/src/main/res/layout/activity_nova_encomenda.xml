@@ -1,44 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#F5F7FA">
+    android:background="#F5F5F5"
+    android:fitsSystemWindows="true">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:background="#1976D2"
-        android:paddingTop="24dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+    <!-- TOOLBAR (ANTÈT) -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#FFFFFF"
+        android:title="Nova Encomenda"
+        android:titleTextColor="#000000"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
-        <ImageView
-            android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_centerVertical="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="#FFFFFF" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:text="Nova Encomenda"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-    </RelativeLayout>
-
+    <!-- SCROLL CONTENT -->
     <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:id="@+id/scrollContent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -46,144 +38,155 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <LinearLayout
+            <!-- FOTO -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/imgFoto"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:background="#EEEEEE"
+                        android:src="@android:drawable/ic_menu_camera" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📸 Toque para tirar foto"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:background="#66000000"
+                        android:padding="10dp"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:layout_marginBottom="12dp"/>
+
+                    <ProgressBar
+                        android:id="@+id/progressFoto"
+                        android:alpha="0.9"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="center"
+                        android:visibility="gone"/>
+
+                    <TextView
+                        android:id="@+id/tvLoadingFoto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Processando foto..."
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="14sp"
+                        android:background="#80000000"
+                        android:padding="8dp"
+                        android:layout_gravity="center"
+                        android:visibility="gone"/>
+
+
+
+                </FrameLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- SPACE -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="16dp"/>
+
+            <!-- SEARCH MORADOR -->
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#FFFFFF"
-                android:padding="16dp">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:hint="Buscar morador">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Dados da encomenda"
-                    android:textColor="#222222"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="16dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Unidade / Apartamento"
-                    android:textColor="#444444"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
-
-                <EditText
-                    android:id="@+id/etUnidade"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etBuscarMorador"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="#F3F4F6"
-                    android:hint="Ex: 101"
+                    android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="14dp" />
+                    app:startIconDrawable="@drawable/ic_search"
+                    android:maxLines="1"/>
 
-                <Button
-                    android:id="@+id/btnBuscarMorador"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="Buscar Morador"
-                    android:textAllCaps="false"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="18dp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Destinatário"
-                    android:textColor="#444444"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupMorador"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:singleLine="true"
+                app:singleSelection="true"/>
 
-                <TextView
-                    android:id="@+id/tvDestinatario"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="#F3F4F6"
-                    android:minHeight="48dp"
-                    android:gravity="center_vertical"
-                    android:padding="12dp"
-                    android:text="Nenhum morador carregado"
-                    android:textColor="#555555"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="18dp" />
+            <!-- RESULT LIST -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvMoradores"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Descrição"
-                    android:textColor="#444444"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+            <!-- SPACE -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="12dp"/>
 
-                <EditText
+            <!-- DESCRICAO -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:hint="Descrição ">
+
+                <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etDescricao"
                     android:layout_width="match_parent"
-                    android:layout_height="96dp"
-                    android:background="#F3F4F6"
-                    android:gravity="top|start"
-                    android:hint="Ex: caixa pequena, envelope, pacote..."
-                    android:inputType="textMultiLine"
-                    android:padding="12dp"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="18dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Foto da encomenda"
-                    android:textColor="#444444"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:inputType="textCapSentences"/>
 
-                <ImageView
-                    android:id="@+id/imgPreview"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:background="#F3F4F6"
-                    android:contentDescription="Pré-visualização da foto"
-                    android:scaleType="centerCrop"
-                    android:src="@android:drawable/ic_menu_gallery"
-                    android:padding="24dp"
-                    android:layout_marginBottom="14dp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                <Button
-                    android:id="@+id/btnFoto"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="Selecionar Foto"
-                    android:textAllCaps="false"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="14dp" />
-
-                <Button
-                    android:id="@+id/btnSalvar"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:text="Salvar"
-                    android:textAllCaps="false"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-
-                <ProgressBar
-                    android:id="@+id/progressSalvar"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:visibility="gone"
-                    android:layout_marginBottom="12dp" />
-
-            </LinearLayout>
+            <!-- SPACE pou pa kache anba bouton -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="100dp" />
 
         </LinearLayout>
+
     </ScrollView>
 
-</LinearLayout>
+    <!-- BOTTOM BAR -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/bottomBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:cardElevation="8dp"
+        app:cardCornerRadius="0dp"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSalvar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Salvar Encomenda"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp"/>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

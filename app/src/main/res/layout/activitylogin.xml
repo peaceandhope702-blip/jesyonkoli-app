@@ -2,18 +2,38 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="24dp"
     android:background="#F5F7FA">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Entrar"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#1F1F1F"
-        android:layout_marginBottom="20dp" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bem-vindo"
+            android:textSize="22sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Acesse sua conta"
+            android:textSize="14sp"
+            android:textColor="#666"/>
+
+    </LinearLayout>
 
     <EditText
         android:id="@+id/etEmail"
@@ -22,18 +42,35 @@
         android:hint="E-mail"
         android:inputType="textEmailAddress"
         android:layout_marginBottom="12dp"
-        android:background="@android:drawable/edit_text"
+        android:background="@drawable/edittext_bg"
         android:padding="12dp" />
 
-    <EditText
-        android:id="@+id/etPassword"
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Senha"
-        android:inputType="textPassword"
-        android:layout_marginBottom="18dp"
-        android:background="@android:drawable/edit_text"
-        android:padding="12dp" />
+        app:endIconMode="password_toggle"
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
+    <TextView
+        android:id="@+id/tvEsqueciSenha"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Esqueci minha senha"
+        android:textColor="#1E88E5"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginTop="-16dp"
+        android:layout_gravity="end"/>
+
 
     <Button
         android:id="@+id/btnLogin"
@@ -46,14 +83,27 @@
         android:textColor="#FFFFFF"
         android:layout_marginBottom="10dp" />
 
-    <Button
-        android:id="@+id/btnRegister"
-        android:layout_width="match_parent"
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Criar conta"
-        android:textAllCaps="false"
-        android:textStyle="bold"
-        android:backgroundTint="#E0E0E0"
-        android:textColor="#1F1F1F" />
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/btnRegister"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Não tem conta? Criar conta"
+        android:textColor="#1E88E5"
+        android:textSize="14sp"
+        android:layout_gravity="center"
+        android:layout_marginTop="12dp"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="5"/>
 
 </LinearLayout>

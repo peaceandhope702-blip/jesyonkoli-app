@@ -4,84 +4,158 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.content.Context;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
-import android.widget.Button;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.ricardo.jesyonkoli.R;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class NovaEncomendaActivity extends AppCompatActivity {
 
-    private EditText etUnidade;
+    private MaterialToolbar toolbar;
+    private Uri imageUri;
+    private String fotoLocalPath;
+    private ImageView imgFoto;
+    private EditText etBuscarMorador;
     private EditText etDescricao;
-    private TextView tvDestinatario;
-    private Button btnBuscarMorador, btnFoto, btnSalvar;
-    private ImageView imgPreview;
-    private ProgressBar progressSalvar;
-
-    private String condominioId;
+    private RecyclerView rvMoradores;
+    private MaterialButton btnSalvar;
+    private ChipGroup chipGroupMorador;
+    private TextView tvLoadingFoto;
 
     private FirebaseFirestore db;
+    private String condominioId;
 
     private String moradorId = null;
     private String destinatarioNome = null;
     private String unitIdEncontrada = null;
+    private String unidadeSelecionada = null;
 
     private Bitmap fotoBitmap;
-
+    private ProgressBar progressFoto;
     private boolean salvando = false;
+    private boolean selecionandoMorador = false;
+
+    private MoradorAdapter moradorAdapter;
+    private final List<MoradorItem> todosMoradores = new ArrayList<>();
+    private final List<MoradorItem> moradoresFiltrados = new ArrayList<>();
+
+    // DEBOUNCE
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
+
+    // 🔥 SNACKBAR PRO (couleur + vibration + anchor)
+    private void showSnack(String message, boolean isSuccess) {
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT);
+
+        // anchor sou bouton Salvar
+        snackbar.setAnchorView(btnSalvar);
+
+        // 🎨 COULEUR
+        if (isSuccess) {
+            snackbar.setBackgroundTint(getResources().getColor(android.R.color.holo_green_dark));
+        } else {
+            snackbar.setBackgroundTint(getResources().getColor(android.R.color.holo_red_dark));
+        }
+
+        // 📳 VIBRATION
+        try {
+            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+            if (vibrator != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(
+                            isSuccess ? 80 : 200,
+                            VibrationEffect.DEFAULT_AMPLITUDE
+                    ));
+                } else {
+                    vibrator.vibrate(isSuccess ? 80 : 200);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        snackbar.show();
+    }
 
     private final ActivityResultLauncher<Intent> cameraLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
+
                         try {
-                            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                                Bundle extras = result.getData().getExtras();
 
-                                if (extras != null) {
-                                    Object data = extras.get("data");
-
-                                    if (data instanceof Bitmap) {
-                                        fotoBitmap = (Bitmap) data;
-
-                                        if (imgPreview != null) {
-                                            imgPreview.setImageBitmap(fotoBitmap);
-                                        }
-
-                                        Toast.makeText(this, "Foto capturada com sucesso", Toast.LENGTH_SHORT).show();
-                                    } else {
-                                        Toast.makeText(this, "Erro ao obter imagem da câmera", Toast.LENGTH_SHORT).show();
-                                    }
-                                } else {
-                                    Toast.makeText(this, "Nenhum dado retornado pela câmera", Toast.LENGTH_SHORT).show();
-                                }
-                            } else {
-                                Toast.makeText(this, "Captura de foto cancelada", Toast.LENGTH_SHORT).show();
+                            if (result.getResultCode() != RESULT_OK) {
+                                progressFoto.setVisibility(View.GONE);
+                                imgFoto.setEnabled(true);
+                                return;
                             }
+
+                            File file = new File(fotoLocalPath);
+
+                            if (file.exists()) {
+
+                                // ✅ Glide pou affichage rapid
+                                Glide.with(this)
+                                        .load(file)
+                                        .thumbnail(1.0f)
+                                        .centerCrop()
+                                        .into(imgFoto);
+
+                                // ✅ kenbe bitmap pou validation ou
+                                fotoBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+
+                                showSnack("Foto capturada em alta qualidade", true);
+
+                            } else {
+                                showSnack("Erro ao capturar foto", false);
+                            }
+
+                            progressFoto.setVisibility(View.GONE);
+                            imgFoto.setEnabled(true);
+
                         } catch (Exception e) {
-                            Toast.makeText(this, "Erro ao processar foto: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            progressFoto.setVisibility(View.GONE);
+                            imgFoto.setEnabled(true);
+                            showSnack("Erro ao processar foto", false);
                         }
                     }
             );
@@ -90,15 +164,8 @@ public class NovaEncomendaActivity extends AppCompatActivity {
             registerForActivityResult(
                     new ActivityResultContracts.RequestPermission(),
                     isGranted -> {
-                        if (isGranted) {
-                            abrirCameraDiretamente();
-                        } else {
-                            Toast.makeText(
-                                    this,
-                                    "Permissão da câmera negada. Autorize para tirar foto da encomenda.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
+                        if (isGranted) abrirCameraDiretamente();
+                        else showSnack("Permissão da câmera negada", false);
                     }
             );
 
@@ -109,28 +176,162 @@ public class NovaEncomendaActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
-        etUnidade = findViewById(R.id.etUnidade);
+        toolbar = findViewById(R.id.toolbar);
+        imgFoto = findViewById(R.id.imgFoto);
+        etBuscarMorador = findViewById(R.id.etBuscarMorador);
         etDescricao = findViewById(R.id.etDescricao);
-        tvDestinatario = findViewById(R.id.tvDestinatario);
-        imgPreview = findViewById(R.id.imgPreview);
-        progressSalvar = findViewById(R.id.progressSalvar);
-
-        ImageView btnBack = findViewById(R.id.btnBack);
-        btnBuscarMorador = findViewById(R.id.btnBuscarMorador);
-        btnFoto = findViewById(R.id.btnFoto);
+        rvMoradores = findViewById(R.id.rvMoradores);
+        progressFoto = findViewById(R.id.progressFoto);
         btnSalvar = findViewById(R.id.btnSalvar);
+        chipGroupMorador = findViewById(R.id.chipGroupMorador);
 
-        btnBack.setOnClickListener(v -> finish());
-        btnBuscarMorador.setOnClickListener(v -> buscarMoradorPorUnidade());
-        btnFoto.setOnClickListener(v -> verificarPermissaoEAbrirCamera());
-        btnSalvar.setOnClickListener(v -> salvarEncomenda());
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         condominioId = getIntent().getStringExtra("condominioId");
 
         if (condominioId == null || condominioId.trim().isEmpty()) {
-            Toast.makeText(this, "Condomínio não informado", Toast.LENGTH_LONG).show();
+            showSnack("Condomínio não informado", false);
             finish();
+            return;
         }
+
+        configurarRecyclerView();
+        configurarBuscaAutomatica();
+
+        imgFoto.setOnClickListener(v -> {
+
+            // BLOKE klik
+            imgFoto.setEnabled(false);
+
+            // montre loading
+            progressFoto.setVisibility(View.VISIBLE);
+            tvLoadingFoto = findViewById(R.id.tvLoadingFoto);
+
+            verificarPermissaoEAbrirCamera();
+        });
+
+        btnSalvar.setOnClickListener(v -> salvarEncomenda());
+
+        carregarMoradores();
+    }
+
+    private void configurarRecyclerView() {
+        moradorAdapter = new MoradorAdapter(moradoresFiltrados, morador -> {
+            selecionandoMorador = true;
+
+            moradorId = morador.id;
+            destinatarioNome = morador.nome;
+            unitIdEncontrada = morador.unitId;
+            unidadeSelecionada = morador.unidade;
+
+            etBuscarMorador.setText("");
+            rvMoradores.setVisibility(View.GONE);
+
+            selecionandoMorador = false;
+            mostrarChipSelecionado(destinatarioNome);
+        });
+
+        rvMoradores.setLayoutManager(new LinearLayoutManager(this));
+        rvMoradores.setAdapter(moradorAdapter);
+    }
+
+    private void configurarBuscaAutomatica() {
+        etBuscarMorador.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+                if (searchRunnable != null) {
+                    handler.removeCallbacks(searchRunnable);
+                }
+
+                searchRunnable = () -> {
+
+                    if (selecionandoMorador || salvando) return;
+
+                    // 🔥 FIX: SI MORADOR DEJA CHWAZI → PA TOUCHE
+                    if (moradorId != null) return;
+
+                    moradorId = null;
+                    destinatarioNome = null;
+                    unitIdEncontrada = null;
+                    unidadeSelecionada = null;
+
+                    filtrarMoradores(s.toString());
+                };
+
+                handler.postDelayed(searchRunnable, 300);
+            }
+
+            @Override public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void mostrarChipSelecionado(String nome) {
+        chipGroupMorador.removeAllViews();
+
+        Chip chip = new Chip(this);
+        chip.setText(nome);
+        chip.setCloseIconVisible(true);
+
+        chip.setOnCloseIconClickListener(v -> {
+            chipGroupMorador.removeAllViews();
+
+            moradorId = null;
+            destinatarioNome = null;
+            unitIdEncontrada = null;
+            unidadeSelecionada = null;
+
+            etBuscarMorador.setText("");
+        });
+
+        chipGroupMorador.addView(chip);
+    }
+
+    private void filtrarMoradores(String texto) {
+        moradoresFiltrados.clear();
+
+        String busca = texto.trim().toLowerCase(Locale.ROOT);
+
+        if (busca.isEmpty()) {
+            rvMoradores.setVisibility(View.GONE);
+            moradorAdapter.notifyDataSetChanged();
+            return;
+        }
+
+        for (MoradorItem m : todosMoradores) {
+            String nome = m.nome.toLowerCase(Locale.ROOT);
+            String unidade = m.unidade.toLowerCase(Locale.ROOT);
+
+            if (nome.contains(busca) || unidade.contains(busca)) {
+                moradoresFiltrados.add(m);
+            }
+        }
+
+        moradorAdapter.notifyDataSetChanged();
+        rvMoradores.setVisibility(moradoresFiltrados.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    private void carregarMoradores() {
+        db.collection("users")
+                .whereEqualTo("role", "MORADOR")
+                .whereEqualTo("status", "ATIVO")
+                .whereEqualTo("condominioId", condominioId)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    todosMoradores.clear();
+
+                    snap.forEach(doc -> {
+                        todosMoradores.add(new MoradorItem(
+                                doc.getId(),
+                                doc.getString("nome"),
+                                doc.getString("unidade"),
+                                doc.getString("unitId"),
+                                doc.getString("email")
+                        ));
+                    });
+                });
     }
 
     private void verificarPermissaoEAbrirCamera() {
@@ -143,203 +344,126 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     }
 
     private void abrirCameraDiretamente() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
-        if (intent.resolveActivity(getPackageManager()) != null) {
+        try {
+            File dir = new File(getFilesDir(), "fotos");
+            if (!dir.exists()) dir.mkdirs();
+
+            File file = new File(dir, "foto_" + System.currentTimeMillis() + ".jpg");
+
+            fotoLocalPath = file.getAbsolutePath();
+
+            imageUri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".provider",
+                    file
+            );
+
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+
             cameraLauncher.launch(intent);
-        } else {
-            Toast.makeText(this, "Nenhum aplicativo de câmera encontrado", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            showSnack("Erro ao abrir câmera", false);
         }
-    }
-
-    private void buscarMoradorPorUnidade() {
-
-        String unidade = etUnidade.getText().toString().trim().toUpperCase();
-
-        etUnidade.setText(unidade);
-        etUnidade.setSelection(unidade.length());
-
-        if (unidade.isEmpty()) {
-            Toast.makeText(this, "Digite a unidade", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        moradorId = null;
-        destinatarioNome = null;
-        unitIdEncontrada = null;
-        tvDestinatario.setText("Buscando morador...");
-
-        db.collection("units")
-                .whereEqualTo("unidade", unidade)
-                .whereEqualTo("condominioId", condominioId)
-                .whereEqualTo("status", "ATIVA")
-                .get()
-                .addOnSuccessListener(unitSnapshots -> {
-
-                    if (unitSnapshots.isEmpty()) {
-                        tvDestinatario.setText("Unidade não encontrada");
-                        return;
-                    }
-
-                    DocumentSnapshot unitDoc = unitSnapshots.getDocuments().get(0);
-                    unitIdEncontrada = unitDoc.getId();
-
-                    db.collection("users")
-                            .whereEqualTo("role", "MORADOR")
-                            .whereEqualTo("status", "ATIVO")
-                            .whereEqualTo("unitId", unitIdEncontrada)
-                            .whereEqualTo("condominioId", condominioId)
-                            .get()
-                            .addOnSuccessListener(userSnapshots -> {
-
-                                if (userSnapshots.isEmpty()) {
-                                    tvDestinatario.setText("Morador não encontrado");
-                                    return;
-                                }
-
-                                DocumentSnapshot userDoc = userSnapshots.getDocuments().get(0);
-                                moradorId = userDoc.getId();
-
-                                destinatarioNome = userDoc.getString("nome");
-                                tvDestinatario.setText(destinatarioNome);
-                            });
-                });
     }
 
     private void salvarEncomenda() {
-        if (salvando) {
-            return;
-        }
+        if (salvando) return;
 
-        String unidade = etUnidade.getText().toString().trim();
         String descricao = etDescricao.getText().toString().trim();
 
-        if (unidade.isEmpty()) {
-            Toast.makeText(this, "Digite a unidade", Toast.LENGTH_SHORT).show();
+        if (moradorId == null || descricao.isEmpty() || fotoBitmap == null) {
+            showSnack("Preencha todos os campos", false);
             return;
         }
 
-        if (descricao.isEmpty()) {
-            Toast.makeText(this, "Digite a descrição", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (moradorId == null || destinatarioNome == null || unitIdEncontrada == null) {
-            Toast.makeText(this, "Busque o morador antes de salvar", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (fotoBitmap == null) {
-            Toast.makeText(this, "Tire uma foto da encomenda", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(this, "Usuário não autenticado", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        setSalvandoState(true);
-
-        String portariaUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        salvando = true;
 
         Map<String, Object> encomenda = new HashMap<>();
-        encomenda.put("unidade", unidade);
+        encomenda.put("unidade", unidadeSelecionada);
         encomenda.put("unitId", unitIdEncontrada);
         encomenda.put("moradorId", moradorId);
         encomenda.put("destinatario", destinatarioNome);
         encomenda.put("descricao", descricao);
         encomenda.put("status", "PENDENTE");
         encomenda.put("createdAt", FieldValue.serverTimestamp());
-        encomenda.put("createdBy", portariaUid);
+        encomenda.put("createdBy", FirebaseAuth.getInstance().getUid());
         encomenda.put("condominioId", condominioId);
-
-        registrarEncomendaLocal(encomenda);
-    }
-
-    private void registrarEncomendaLocal(Map<String, Object> encomenda) {
-        if (fotoBitmap == null) {
-            Toast.makeText(this, "Tire uma foto da encomenda", Toast.LENGTH_SHORT).show();
-            setSalvandoState(false);
-            return;
-        }
-
-        String fotoLocalPath = salvarFotoLocalmente(fotoBitmap);
-
-        if (fotoLocalPath == null) {
-            Toast.makeText(this, "Erro ao salvar foto no telefone", Toast.LENGTH_LONG).show();
-            setSalvandoState(false);
-            return;
-        }
-
         encomenda.put("fotoLocalPath", fotoLocalPath);
 
-        db.collection("encomendas")
-                .add(encomenda)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Encomenda registrada com sucesso", Toast.LENGTH_LONG).show();
+        db.collection("encomendas").add(encomenda)
+                .addOnSuccessListener(r -> {
+                    showSnack("Encomenda salva com sucesso", true);
                     limparCampos();
-                    setSalvandoState(false);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Erro ao salvar encomenda: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    setSalvandoState(false);
+                    salvando = false;
                 });
     }
 
-    private void setSalvandoState(boolean salvandoAgora) {
-        salvando = salvandoAgora;
+    private void limparCampos() {
+        etBuscarMorador.setText("");
+        etDescricao.setText("");
+        chipGroupMorador.removeAllViews();
+        imgFoto.setImageResource(R.drawable.ic_camera_placeholder);
 
-        btnSalvar.setEnabled(!salvandoAgora);
-        btnBuscarMorador.setEnabled(!salvandoAgora);
-        btnFoto.setEnabled(!salvandoAgora);
-        etUnidade.setEnabled(!salvandoAgora);
-        etDescricao.setEnabled(!salvandoAgora);
+        moradoresFiltrados.clear();
+        moradorAdapter.notifyDataSetChanged();
+        rvMoradores.setVisibility(View.GONE);
+    }
 
-        if (salvandoAgora) {
-            btnSalvar.setText("Salvando...");
-            progressSalvar.setVisibility(View.VISIBLE);
-        } else {
-            btnSalvar.setText("Salvar");
-            progressSalvar.setVisibility(View.GONE);
+    private static class MoradorItem {
+        String id, nome, unidade, unitId, email;
+
+        MoradorItem(String id, String nome, String unidade, String unitId, String email) {
+            this.id = id;
+            this.nome = nome;
+            this.unidade = unidade;
+            this.unitId = unitId;
+            this.email = email;
         }
     }
 
-    private String salvarFotoLocalmente(Bitmap bitmap) {
-        File diretorio = new File(getFilesDir(), "encomendas");
+    private static class MoradorAdapter extends RecyclerView.Adapter<MoradorAdapter.ViewHolder> {
 
-        if (!diretorio.exists()) {
-            boolean created = diretorio.mkdirs();
-            if (!created) {
-                return null;
+        interface OnMoradorClickListener {
+            void onMoradorClick(MoradorItem morador);
+        }
+
+        private final List<MoradorItem> lista;
+        private final OnMoradorClickListener listener;
+
+        MoradorAdapter(List<MoradorItem> lista, OnMoradorClickListener listener) {
+            this.lista = lista;
+            this.listener = listener;
+        }
+
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            TextView tv = new TextView(parent.getContext());
+            tv.setPadding(30, 25, 30, 25);
+            tv.setTextSize(16);
+            return new ViewHolder(tv);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            MoradorItem m = lista.get(position);
+            holder.tv.setText(m.nome + " • " + m.unidade);
+            holder.tv.setOnClickListener(v -> listener.onMoradorClick(m));
+        }
+
+        @Override
+        public int getItemCount() {
+            return lista.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tv;
+            ViewHolder(View itemView) {
+                super(itemView);
+                tv = (TextView) itemView;
             }
         }
-
-        String nomeArquivo = "encomenda_" + System.currentTimeMillis() + ".jpg";
-        File arquivo = new File(diretorio, nomeArquivo);
-
-        try (FileOutputStream fos = new FileOutputStream(arquivo)) {
-            boolean ok = bitmap.compress(Bitmap.CompressFormat.JPEG, 70, fos);
-            fos.flush();
-            return ok ? arquivo.getAbsolutePath() : null;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void limparCampos() {
-        etUnidade.setText("");
-        etDescricao.setText("");
-        tvDestinatario.setText("Nenhum morador carregado");
-
-        if (imgPreview != null) {
-            imgPreview.setImageDrawable(null);
-        }
-
-        moradorId = null;
-        destinatarioNome = null;
-        unitIdEncontrada = null;
-        fotoBitmap = null;
     }
 }

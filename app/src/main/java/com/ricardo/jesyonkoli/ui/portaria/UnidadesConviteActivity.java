@@ -249,7 +249,7 @@ public class UnidadesConviteActivity extends AppCompatActivity {
                     copyToClipboard(code);
                 })
 
-                .setNeutralButton("Partager", (dialog, which) -> {
+                .setNeutralButton("Compartilhar", (dialog, which) -> {
                     shareCode(code, unidade);
                 })
 

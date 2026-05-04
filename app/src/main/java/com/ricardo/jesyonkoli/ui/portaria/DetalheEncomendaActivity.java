@@ -8,7 +8,14 @@ import android.util.Base64;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
+import android.view.View;
+import com.bumptech.glide.Glide;
+
+// 🔥 NOUVO IMPORT (Snackbar + vibration)
+import com.google.android.material.snackbar.Snackbar;
+import android.os.Vibrator;
+import android.os.VibrationEffect;
+import android.content.Context;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -19,14 +26,16 @@ import com.ricardo.jesyonkoli.R;
 import java.io.File;
 import java.util.ArrayList;
 
+
 public class DetalheEncomendaActivity extends AppCompatActivity {
 
-    private TextView tvDestinatario, tvUnidade, tvDescricao, tvStatus;
+    private TextView tvDestinatario, tvSubInfo, tvStatus,  tvTotalEncomendas;
     private ImageView imgFotoDetalhe, imgAssinaturaDetalhe;
 
     private Button btnRetirarSomente;
     private Button btnRetirarTodos;
     private Button btnEditar;
+    private String fotoLocalPathGlobal;
 
     private FirebaseFirestore db;
     private String encomendaId;
@@ -35,6 +44,37 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
     // 🔥 GROUP RETIRADA
     private String unidadeAtual;
     private ArrayList<String> encomendasPendentesIds = new ArrayList<>();
+
+    // 🔥 SNACKBAR PRO (anchor + couleur + vibration)
+    private void showSnack(String message, boolean isSuccess) {
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT);
+
+        // 👉 anchor sou bouton prensipal
+        snackbar.setAnchorView(btnRetirarSomente);
+
+        // 🎨 COULEUR
+        if (isSuccess) {
+            snackbar.setBackgroundTint(getResources().getColor(android.R.color.holo_green_dark));
+        } else {
+            snackbar.setBackgroundTint(getResources().getColor(android.R.color.holo_red_dark));
+        }
+        // 📳 VIBRATION
+        try {
+            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(
+                            isSuccess ? 80 : 200,
+                            VibrationEffect.DEFAULT_AMPLITUDE
+                    ));
+                } else {
+                    vibrator.vibrate(isSuccess ? 80 : 200);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        snackbar.show();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,11 +85,11 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
 
         tvDestinatario = findViewById(R.id.tvDestinatarioDetalhe);
-        tvUnidade = findViewById(R.id.tvUnidadeDetalhe);
-        tvDescricao = findViewById(R.id.tvDescricaoDetalhe);
         tvStatus = findViewById(R.id.tvStatusDetalhe);
         imgFotoDetalhe = findViewById(R.id.imgFotoDetalhe);
         imgAssinaturaDetalhe = findViewById(R.id.imgAssinaturaDetalhe);
+        tvTotalEncomendas = findViewById(R.id.tvTotalEncomendas);
+        tvSubInfo = findViewById(R.id.tvSubInfo);
 
         btnRetirarSomente = findViewById(R.id.btnRetirarSomente);
         btnRetirarTodos = findViewById(R.id.btnRetirarTodos);
@@ -60,16 +100,61 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
         encomendaId = getIntent().getStringExtra("encomendaId");
 
         if (encomendaId == null || encomendaId.isEmpty()) {
-            Toast.makeText(this, "ID da encomenda não recebido", Toast.LENGTH_LONG).show();
+            showSnack("ID da encomenda não recebido", false);
             finish();
             return;
         }
+        imgFotoDetalhe.setOnClickListener(v -> {
+
+            if (fotoLocalPathGlobal != null && !fotoLocalPathGlobal.isEmpty()) {
+
+                Intent intent = new Intent(this, VisualizarFotoActivity.class);
+                intent.putExtra("fotoPath", fotoLocalPathGlobal);
+                startActivity(intent);
+
+            } else {
+                showSnack("Foto indisponível", false);
+            }
+
+        });
+
 
         // 🔵 Retirar somente este
         btnRetirarSomente.setOnClickListener(v -> {
-            Intent intent = new Intent(this, AssinaturaActivity.class);
-            intent.putExtra("encomendaId", encomendaId);
-            startActivity(intent);
+
+            if (encomendasPendentesIds.size() > 1) {
+
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Retirar encomendas")
+                        .setItems(new CharSequence[]{
+                                "Somente esta",
+                                "Todas da unidade"
+                        }, (dialog, which) -> {
+
+                            if (which == 0) {
+
+                                Intent intent = new Intent(this, AssinaturaActivity.class);
+                                intent.putExtra("encomendaId", encomendaId);
+                                startActivity(intent);
+
+                            } else {
+
+                                Intent intent = new Intent(this, AssinaturaActivity.class);
+                                intent.putStringArrayListExtra("listaEncomendasIds", encomendasPendentesIds);
+                                startActivity(intent);
+
+                            }
+
+                        })
+                        .show();
+
+            } else {
+
+                Intent intent = new Intent(this, AssinaturaActivity.class);
+                intent.putExtra("encomendaId", encomendaId);
+                startActivity(intent);
+
+            }
         });
 
         // 🟢 Retirar todos
@@ -102,7 +187,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
 
                     if (!documentSnapshot.exists()) {
-                        Toast.makeText(this, "Encomenda não encontrada", Toast.LENGTH_LONG).show();
+                        showSnack("Encomenda não encontrada", false);
                         finish();
                         return;
                     }
@@ -113,24 +198,37 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                     String status = documentSnapshot.getString("status");
                     String assinaturaBase64 = documentSnapshot.getString("assinaturaBase64");
                     String fotoLocalPath = documentSnapshot.getString("fotoLocalPath");
+                    fotoLocalPathGlobal = fotoLocalPath;
 
+                    int total = encomendasPendentesIds.size();
                     statusAtual = status;
                     unidadeAtual = unidade;
 
                     tvDestinatario.setText(destinatario != null ? destinatario : "--");
-                    tvUnidade.setText(unidade != null ? unidade : "--");
-                    tvDescricao.setText(descricao != null ? descricao : "--");
+                    String subInfo = (unidade != null ? unidade : "--") +
+                            " • " +
+                            (descricao != null ? descricao : "--");
+
+                    tvSubInfo.setText(subInfo);
                     tvStatus.setText(status != null ? status : "--");
 
                     // FOTO
+                    // FOTO (GLIDE PRO FIX)
                     if (fotoLocalPath != null && !fotoLocalPath.isEmpty()) {
+
                         File fotoFile = new File(fotoLocalPath);
+
                         if (fotoFile.exists()) {
-                            Bitmap fotoBitmap = BitmapFactory.decodeFile(fotoFile.getAbsolutePath());
-                            imgFotoDetalhe.setImageBitmap(fotoBitmap);
+
+                            Glide.with(this)
+                                    .load(fotoFile)
+                                    .error(R.drawable.test_image) // si li pa jwenn foto
+                                    .into(imgFotoDetalhe);
+
                         } else {
                             imgFotoDetalhe.setImageResource(android.R.color.transparent);
                         }
+
                     } else {
                         imgFotoDetalhe.setImageResource(android.R.color.transparent);
                     }
@@ -165,7 +263,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                     buscarEncomendasPendentesMesmaUnidade();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "Erro ao carregar detalhes: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                        showSnack("Erro ao carregar detalhes", false)
                 );
     }
 
@@ -187,6 +285,10 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                     }
 
                     int total = encomendasPendentesIds.size();
+
+                    // ✅ UPDATE UI ISIT LA
+                    TextView tvTotalEncomendas = findViewById(R.id.tvTotalEncomendas);
+                    tvTotalEncomendas.setText(total + " encomendas pendentes");
 
                     if (!"RETIRADA".equals(statusAtual)) {
 
