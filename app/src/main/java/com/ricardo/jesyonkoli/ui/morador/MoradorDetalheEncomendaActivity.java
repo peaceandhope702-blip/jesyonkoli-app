@@ -1,5 +1,6 @@
 package com.ricardo.jesyonkoli.ui.morador;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -46,12 +48,15 @@ public class MoradorDetalheEncomendaActivity extends AppCompatActivity {
         tvStatusDetalhe = findViewById(R.id.tvStatusDetalhe);
         tvCreatedAtDetalhe = findViewById(R.id.tvCreatedAtDetalhe);
         tvRetiradaAtDetalhe = findViewById(R.id.tvRetiradaAtDetalhe);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
         imgFotoDetalhe = findViewById(R.id.imgFotoDetalhe);
         imgAssinaturaDetalhe = findViewById(R.id.imgAssinaturaDetalhe);
 
+
         db = FirebaseFirestore.getInstance();
         encomendaId = getIntent().getStringExtra("encomendaId");
+
 
         if (encomendaId == null || encomendaId.trim().isEmpty()) {
             Toast.makeText(this, "ID da encomenda não recebido", Toast.LENGTH_LONG).show();
@@ -73,59 +78,96 @@ public class MoradorDetalheEncomendaActivity extends AppCompatActivity {
     }
 
     private void preencherTela(DocumentSnapshot documentSnapshot) {
-        if (!documentSnapshot.exists()) {
-            Toast.makeText(this, "Encomenda não encontrada", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
 
-        String destinatario = documentSnapshot.getString("destinatario");
-        String unidade = documentSnapshot.getString("unidade");
-        String descricao = documentSnapshot.getString("descricao");
-        String status = documentSnapshot.getString("status");
-        String assinaturaBase64 = documentSnapshot.getString("assinaturaBase64");
-        String fotoLocalPath = documentSnapshot.getString("fotoLocalPath");
+        try {
 
-        Timestamp createdAt = documentSnapshot.getTimestamp("createdAt");
-        Timestamp retiradaAt = documentSnapshot.getTimestamp("retiradaAt");
+            if (!documentSnapshot.exists()) {
+                Toast.makeText(this, "Encomenda não encontrada", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
 
-        tvDestinatarioDetalhe.setText("Destinatário: " + safeText(destinatario, "Não informado"));
-        tvUnidadeDetalhe.setText("Unidade: " + safeText(unidade, "Não informada"));
-        tvDescricaoDetalhe.setText("Descrição: " + safeText(descricao, "Sem descrição"));
-        tvStatusDetalhe.setText("Status: " + safeText(status, "PENDENTE"));
-        tvCreatedAtDetalhe.setText("Recebida em: " + formatTimestamp(createdAt));
+            String fotoUrl = documentSnapshot.getString("fotoUrl");
+            String fotoLocalPath = documentSnapshot.getString("fotoLocalPath");
 
-        if (retiradaAt != null) {
-            tvRetiradaAtDetalhe.setVisibility(View.VISIBLE);
-            tvRetiradaAtDetalhe.setText("Retirada em: " + formatTimestamp(retiradaAt));
-        } else {
-            tvRetiradaAtDetalhe.setVisibility(View.GONE);
-        }
+            String destinatario = documentSnapshot.getString("destinatario");
+            String unidade = documentSnapshot.getString("unidade");
+            String descricao = documentSnapshot.getString("descricao");
+            String status = documentSnapshot.getString("status");
+            String assinaturaBase64 = documentSnapshot.getString("assinaturaBase64");
 
-        if (fotoLocalPath != null && !fotoLocalPath.trim().isEmpty()) {
-            File fotoFile = new File(fotoLocalPath);
-            if (fotoFile.exists()) {
-                Bitmap fotoBitmap = BitmapFactory.decodeFile(fotoFile.getAbsolutePath());
-                imgFotoDetalhe.setImageBitmap(fotoBitmap);
+            Timestamp createdAt = documentSnapshot.getTimestamp("createdAt");
+            Timestamp retiradaAt = documentSnapshot.getTimestamp("retiradaAt");
+
+            tvDestinatarioDetalhe.setText(safeText(destinatario, "Não informado"));
+            tvUnidadeDetalhe.setText(safeText(unidade, "Não informada"));
+            tvDescricaoDetalhe.setText(safeText(descricao, "Sem descrição"));
+            tvStatusDetalhe.setText(safeText(status, "PENDENTE"));
+            tvCreatedAtDetalhe.setText(formatTimestamp(createdAt));
+
+            if (retiradaAt != null) {
+                tvRetiradaAtDetalhe.setVisibility(View.VISIBLE);
+                tvRetiradaAtDetalhe.setText("Retirada em: " + formatTimestamp(retiradaAt));
+            } else {
+                tvRetiradaAtDetalhe.setVisibility(View.GONE);
+            }
+
+            // FOTO
+            if (fotoUrl != null && !fotoUrl.isEmpty()) {
+
                 imgFotoDetalhe.setVisibility(View.VISIBLE);
+
+
+                Glide.with(this)
+                        .load(fotoUrl)
+                        .placeholder(R.drawable.ic_camera_placeholder)
+                        .error(R.drawable.test_image) // ou deja genyen li
+                        .into(imgFotoDetalhe);
+
+                imgFotoDetalhe.setOnClickListener(v -> {
+
+                    if (fotoUrl != null && !fotoUrl.isEmpty()) {
+                        Intent intent = new Intent(this, FotoZoomActivity.class);
+                        intent.putExtra("fotoUrl", fotoUrl);
+                        startActivity(intent);
+                    }
+
+                });
+
+            } else if (fotoLocalPath != null && !fotoLocalPath.isEmpty()) {
+
+                File file = new File(fotoLocalPath);
+
+                if (file.exists()) {
+                    imgFotoDetalhe.setVisibility(View.VISIBLE);
+
+                    Glide.with(this)
+                            .load(file)
+                            .into(imgFotoDetalhe);
+                } else {
+                    imgFotoDetalhe.setVisibility(View.GONE);
+                }
+
             } else {
                 imgFotoDetalhe.setVisibility(View.GONE);
             }
-        } else {
-            imgFotoDetalhe.setVisibility(View.GONE);
-        }
 
-        if (assinaturaBase64 != null && !assinaturaBase64.trim().isEmpty()) {
-            try {
-                byte[] bytes = Base64.decode(assinaturaBase64, Base64.DEFAULT);
-                Bitmap assinaturaBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                imgAssinaturaDetalhe.setImageBitmap(assinaturaBitmap);
-                imgAssinaturaDetalhe.setVisibility(View.VISIBLE);
-            } catch (Exception e) {
+            // ASSINATURA
+            if (assinaturaBase64 != null && !assinaturaBase64.isEmpty()) {
+                try {
+                    byte[] bytes = Base64.decode(assinaturaBase64, Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    imgAssinaturaDetalhe.setImageBitmap(bitmap);
+                    imgAssinaturaDetalhe.setVisibility(View.VISIBLE);
+                } catch (Exception e) {
+                    imgAssinaturaDetalhe.setVisibility(View.GONE);
+                }
+            } else {
                 imgAssinaturaDetalhe.setVisibility(View.GONE);
             }
-        } else {
-            imgAssinaturaDetalhe.setVisibility(View.GONE);
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Erro interno: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

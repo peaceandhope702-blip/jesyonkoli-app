@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.os.VibrationEffect;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -48,6 +49,9 @@ import java.util.Map;
 import java.util.HashMap;
 import java.io.File;
 import java.io.FileOutputStream;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 public class NovaEncomendaActivity extends AppCompatActivity {
 
@@ -87,6 +91,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     private void showSnack(String message, boolean isSuccess) {
         Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT);
 
+
         // anchor sou bouton Salvar
         snackbar.setAnchorView(btnSalvar);
 
@@ -102,11 +107,13 @@ public class NovaEncomendaActivity extends AppCompatActivity {
             Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
             if (vibrator != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(
-                            isSuccess ? 80 : 200,
-                            VibrationEffect.DEFAULT_AMPLITUDE
-                    ));
+                if (Build.VERSION.SDK_INT >= 26) { // ✅ FIX
+                    vibrator.vibrate(
+                            VibrationEffect.createOneShot(
+                                    isSuccess ? 80 : 200,
+                                    VibrationEffect.DEFAULT_AMPLITUDE
+                            )
+                    );
                 } else {
                     vibrator.vibrate(isSuccess ? 80 : 200);
                 }
@@ -114,6 +121,19 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         } catch (Exception ignored) {}
 
         snackbar.show();
+    }
+    private void setLoadingState(boolean isLoading) {
+
+        if (isLoading) {
+            btnSalvar.setEnabled(false);
+            btnSalvar.setText("Salvando...");
+            btnSalvar.setIconResource(android.R.drawable.ic_popup_sync);
+
+        } else {
+            btnSalvar.setEnabled(true);
+            btnSalvar.setText("Salvar Encomenda");
+            btnSalvar.setIcon(null);
+        }
     }
 
     private final ActivityResultLauncher<Intent> cameraLauncher =
@@ -380,24 +400,109 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         }
 
         salvando = true;
+        setLoadingState(true); // 🔥 UX loading
 
-        Map<String, Object> encomenda = new HashMap<>();
-        encomenda.put("unidade", unidadeSelecionada);
-        encomenda.put("unitId", unitIdEncontrada);
-        encomenda.put("moradorId", moradorId);
-        encomenda.put("destinatario", destinatarioNome);
-        encomenda.put("descricao", descricao);
-        encomenda.put("status", "PENDENTE");
-        encomenda.put("createdAt", FieldValue.serverTimestamp());
-        encomenda.put("createdBy", FirebaseAuth.getInstance().getUid());
-        encomenda.put("condominioId", condominioId);
-        encomenda.put("fotoLocalPath", fotoLocalPath);
+        // 🔥 1. CRIAR ID ANTES
+        String encomendaId = db.collection("encomendas").document().getId();
 
-        db.collection("encomendas").add(encomenda)
-                .addOnSuccessListener(r -> {
-                    showSnack("Encomenda salva com sucesso", true);
-                    limparCampos();
+        // 🔥 2. REFERENCIA STORAGE
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference()
+                .child("encomendas/" + condominioId + "/" + encomendaId + ".jpg");
+
+        // 🔥 VALIDATION PATH
+        if (fotoLocalPath == null || fotoLocalPath.isEmpty()) {
+            showSnack("Foto inválida", false);
+            salvando = false;
+            setLoadingState(false);
+            return;
+        }
+
+        // 🔥 VALIDATION URI
+        if (imageUri == null) {
+            showSnack("Imagem não encontrada", false);
+            salvando = false;
+            setLoadingState(false);
+            return;
+        }
+
+        // 🔥 KONPRESYON
+        File originalFile = new File(fotoLocalPath);
+
+        if (!originalFile.exists()) {
+            showSnack("Arquivo não encontrado", false);
+            salvando = false;
+            setLoadingState(false);
+            return;
+        }
+
+        File compressedFile = compressImage(originalFile);
+
+        // 🔥 VERIFYE KONPRESYON
+        if (compressedFile == null || !compressedFile.exists()) {
+            showSnack("Erro ao comprimir imagem", false);
+            salvando = false;
+            setLoadingState(false);
+            return;
+        }
+
+        // 🔥 UPLOAD
+        UploadTask uploadTask = storageRef.putFile(Uri.fromFile(compressedFile));
+
+        uploadTask
+                .addOnSuccessListener(taskSnapshot ->
+                        taskSnapshot.getStorage().getDownloadUrl().addOnSuccessListener(downloadUrl -> {
+
+                            // 🔥 4. FIRESTORE DATA
+                            Map<String, Object> encomenda = new HashMap<>();
+                            encomenda.put("unidade", unidadeSelecionada);
+                            encomenda.put("unitId", unitIdEncontrada);
+                            encomenda.put("moradorId", moradorId);
+                            encomenda.put("destinatario", destinatarioNome);
+                            encomenda.put("descricao", descricao);
+                            encomenda.put("status", "PENDENTE");
+                            encomenda.put("createdAt", FieldValue.serverTimestamp());
+                            encomenda.put("createdBy", FirebaseAuth.getInstance().getUid());
+                            encomenda.put("condominioId", condominioId);
+
+                            // ✅ URL FOTO CLOUD
+                            encomenda.put("fotoUrl", downloadUrl.toString());
+
+                            // (opsyonèl)
+                            encomenda.put("fotoLocalPath", fotoLocalPath);
+
+                            db.collection("encomendas")
+                                    .document(encomendaId)
+                                    .set(encomenda)
+                                    .addOnSuccessListener(r -> {
+
+                                        showSnack("Encomenda salva com sucesso", true);
+                                        limparCampos();
+
+                                        // 🔥 RESET
+                                        moradorId = null;
+                                        destinatarioNome = null;
+                                        unitIdEncontrada = null;
+                                        unidadeSelecionada = null;
+                                        fotoBitmap = null;
+                                        fotoLocalPath = null;
+                                        imageUri = null;
+
+                                        salvando = false;
+                                        setLoadingState(false);
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        showSnack("Erro ao salvar dados", false);
+                                        salvando = false;
+                                        setLoadingState(false);
+                                    });
+
+                        })
+                )
+                .addOnFailureListener(e -> {
+                    showSnack("Erro: " + e.getMessage(), false);
+                    e.printStackTrace();
                     salvando = false;
+                    setLoadingState(false);
                 });
     }
 
@@ -410,6 +515,55 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         moradoresFiltrados.clear();
         moradorAdapter.notifyDataSetChanged();
         rvMoradores.setVisibility(View.GONE);
+    }
+
+    private File compressImage(File originalFile) {
+        try {
+
+            // 🔥 1. OPTIONS pou evite OOM
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+
+            BitmapFactory.decodeFile(originalFile.getAbsolutePath(), options);
+
+            // 🔥 2. REDUI SIZE (ex: max 1280px)
+            int maxSize = 1280;
+            int scale = 1;
+
+            while (options.outWidth / scale > maxSize || options.outHeight / scale > maxSize) {
+                scale *= 2;
+            }
+
+            options.inSampleSize = scale;
+            options.inJustDecodeBounds = false;
+
+            Bitmap bitmap = BitmapFactory.decodeFile(originalFile.getAbsolutePath(), options);
+
+            if (bitmap == null) {
+                return originalFile;
+            }
+
+            // 🔥 3. CREATE FILE
+            File compressedFile = new File(getCacheDir(),
+                    "compressed_" + System.currentTimeMillis() + ".jpg");
+
+            FileOutputStream out = new FileOutputStream(compressedFile);
+
+            // 🔥 4. COMPRESS (quality + size)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 60, out);
+
+            out.flush();
+            out.close();
+
+            // 🔥 5. LIBERE MEMOIRE
+            bitmap.recycle();
+
+            return compressedFile;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return originalFile;
+        }
     }
 
     private static class MoradorItem {

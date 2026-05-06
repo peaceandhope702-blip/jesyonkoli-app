@@ -36,6 +36,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
     private Button btnRetirarTodos;
     private Button btnEditar;
     private String fotoLocalPathGlobal;
+    private String fotoGlobal;
 
     private FirebaseFirestore db;
     private String encomendaId;
@@ -181,6 +182,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
     }
 
     private void carregarDetalhes() {
+
         db.collection("encomendas")
                 .document(encomendaId)
                 .get()
@@ -191,7 +193,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                         finish();
                         return;
                     }
-
+                    String fotoUrl = documentSnapshot.getString("fotoUrl");
                     String destinatario = documentSnapshot.getString("destinatario");
                     String unidade = documentSnapshot.getString("unidade");
                     String descricao = documentSnapshot.getString("descricao");
@@ -199,6 +201,7 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                     String assinaturaBase64 = documentSnapshot.getString("assinaturaBase64");
                     String fotoLocalPath = documentSnapshot.getString("fotoLocalPath");
                     fotoLocalPathGlobal = fotoLocalPath;
+                    fotoGlobal = (fotoUrl != null && !fotoUrl.isEmpty()) ? fotoUrl : fotoLocalPath;
 
                     int total = encomendasPendentesIds.size();
                     statusAtual = status;
@@ -212,19 +215,25 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                     tvSubInfo.setText(subInfo);
                     tvStatus.setText(status != null ? status : "--");
 
-                    // FOTO
-                    // FOTO (GLIDE PRO FIX)
-                    if (fotoLocalPath != null && !fotoLocalPath.isEmpty()) {
+                    // FOTO (SUPPORT LOCAL + CLOUD)
+                    if (fotoUrl != null && !fotoUrl.isEmpty()) {
 
+                        // ✅ PRIORITÉ CLOUD
+                        Glide.with(this)
+                                .load(fotoUrl)
+                                .error(R.drawable.test_image)
+                                .into(imgFotoDetalhe);
+
+                    } else if (fotoLocalPath != null && !fotoLocalPath.isEmpty()) {
+
+                        // ⚠️ FALLBACK LOCAL
                         File fotoFile = new File(fotoLocalPath);
 
                         if (fotoFile.exists()) {
-
                             Glide.with(this)
                                     .load(fotoFile)
-                                    .error(R.drawable.test_image) // si li pa jwenn foto
+                                    .error(R.drawable.test_image)
                                     .into(imgFotoDetalhe);
-
                         } else {
                             imgFotoDetalhe.setImageResource(android.R.color.transparent);
                         }
