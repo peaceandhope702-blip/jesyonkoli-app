@@ -36,7 +36,8 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
     private Button btnRetirarTodos;
     private Button btnEditar;
     private String fotoLocalPathGlobal;
-    private String fotoGlobal;
+
+    private String fotoUrl;
 
     private FirebaseFirestore db;
     private String encomendaId;
@@ -107,10 +108,10 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
         }
         imgFotoDetalhe.setOnClickListener(v -> {
 
-            if (fotoLocalPathGlobal != null && !fotoLocalPathGlobal.isEmpty()) {
+            if (fotoUrl != null && !fotoUrl.isEmpty()) {
 
                 Intent intent = new Intent(this, VisualizarFotoActivity.class);
-                intent.putExtra("fotoPath", fotoLocalPathGlobal);
+                intent.putExtra("fotoUrl", fotoUrl);
                 startActivity(intent);
 
             } else {
@@ -193,15 +194,14 @@ public class DetalheEncomendaActivity extends AppCompatActivity {
                         finish();
                         return;
                     }
-                    String fotoUrl = documentSnapshot.getString("fotoUrl");
+                    fotoUrl = documentSnapshot.getString("fotoUrl");
                     String destinatario = documentSnapshot.getString("destinatario");
                     String unidade = documentSnapshot.getString("unidade");
                     String descricao = documentSnapshot.getString("descricao");
                     String status = documentSnapshot.getString("status");
                     String assinaturaBase64 = documentSnapshot.getString("assinaturaBase64");
                     String fotoLocalPath = documentSnapshot.getString("fotoLocalPath");
-                    fotoLocalPathGlobal = fotoLocalPath;
-                    fotoGlobal = (fotoUrl != null && !fotoUrl.isEmpty()) ? fotoUrl : fotoLocalPath;
+
 
                     int total = encomendasPendentesIds.size();
                     statusAtual = status;

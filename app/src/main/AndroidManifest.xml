@@ -6,7 +6,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
@@ -53,6 +53,7 @@
         </provider>
 
         <activity android:name=".ui.portaria.VisualizarFotoActivity"/>
+
 
         <activity android:name=".ui.admin.UnitsActivity" />
 

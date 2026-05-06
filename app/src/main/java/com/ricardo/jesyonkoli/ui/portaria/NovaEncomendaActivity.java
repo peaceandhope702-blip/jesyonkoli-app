@@ -66,6 +66,9 @@ public class NovaEncomendaActivity extends AppCompatActivity {
     private ChipGroup chipGroupMorador;
     private TextView tvLoadingFoto;
 
+    private FirebaseStorage storage;
+    private StorageReference storageRef;
+
     private FirebaseFirestore db;
     private String condominioId;
 
@@ -204,6 +207,8 @@ public class NovaEncomendaActivity extends AppCompatActivity {
         progressFoto = findViewById(R.id.progressFoto);
         btnSalvar = findViewById(R.id.btnSalvar);
         chipGroupMorador = findViewById(R.id.chipGroupMorador);
+        storage = FirebaseStorage.getInstance();
+        storageRef = storage.getReference();
 
         toolbar.setNavigationOnClickListener(v -> finish());
 
@@ -394,7 +399,7 @@ public class NovaEncomendaActivity extends AppCompatActivity {
 
         String descricao = etDescricao.getText().toString().trim();
 
-        if (moradorId == null || descricao.isEmpty() || fotoBitmap == null) {
+        if (moradorId == null || descricao.isEmpty() || fotoLocalPath == null) {
             showSnack("Preencha todos os campos", false);
             return;
         }
